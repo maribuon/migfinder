@@ -37,7 +37,7 @@ You can opt to give MIG-finder plenty of arguments:
 * **k_orf**       threshold used to filter HattCI results \[default: 0\]
 * **save_orf**    save ORF results in a separate fasta file \[default: True\]
 * **dist_threshold** max distance allowed to consider two adjacent *attC* sites part of the same integron \[default: 4000\]
-* **d_CDS_attC**  max distance allowed between ORF and *attC* site in the same gene cassette. Used to validate the first *attC* site in the array. \[default: 500\]
+* **d_CDS_attC**  max distance allowed between ORF and *attC* site in the same gene cassette. Used to validate the first *attC* site in the array \[default: 500\]
 
 
 ### Output
