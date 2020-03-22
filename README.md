@@ -15,7 +15,7 @@ MIG-finder is a python script and requires other tools to be installed and avail
 * [Prodigal 2.6.2+](http://github.com/hyattpd/Prodigal)
 
 ### Instalation
-Download and uncompress the files provided here.
+Download and uncompress the files provided here. In the directory where setup.py and migfinder directory are located run: 
 ```console
 user@machine:~$ pip install -e migfinder
 ```
