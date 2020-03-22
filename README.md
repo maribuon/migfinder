@@ -2,7 +2,7 @@
 Metagenomic Integron-associated Gene finder
 
 ### Introduction
-MIG-finder is a tool developed to parse genomic data searching for integron-associated genes. The method is optimised for parsely assembled metagenomic data but can be used in whole genomes as well. Integrons are genomic mobile elements carry an integrase gene, a promoter and an array of gene cassettes. Because of the fragmented nature of (assembled) metagenomic data, MIG-finder do not look for the whole integron, instead it seaarches for their gene cassettes and require at least two to be found in the same sequence so that the false positive number is reduced.
+MIG-finder is a tool developed to parse genomic data searching for integron-associated genes. The method is optimised for partly assembled metagenomic data but can be used in whole genomes as well. Integrons are genomic mobile elements carry an integrase gene, a promoter and an array of gene cassettes. Because of the fragmented nature of (assembled) metagenomic data, MIG-finder do not look for the whole integron, instead it searches for their gene cassettes and require at least two to be found in the same sequence so that the false positive number is reduced.
 
 ### Method
 MIG-finder is thus a bioinformatics pipeline. It starts by searching for *attC* sites using HattCI, validates these sites checking their secondary structures using Infernal, filters out single hits to reduce number of false positives and finally search for ORFs on the vicinity of the *attC* sites using Prodigal.
@@ -21,7 +21,7 @@ user@machine:~$ pip install -e migfinder
 ```
 
 ### Running
-Recommended to create a folder to each fasta file analysed. From this folder, start python and run:
+Recommended to create a folder to each fastafile analysed. From this folder, start python and run:
 ```python
 import migfinder as mf
 mf.main(fastafile)
@@ -36,7 +36,7 @@ You can opt to give MIG-finder plenty of arguments:
 * **k_cm**        threshold used to filter Infernal results \[default: 20\]
 * **k_orf**       threshold used to filter HattCI results \[default: 0\]
 * **save_orf**    save ORF results in a separate fasta file \[default: True\]
-* **dist_threshold** max distance allowed to consider two adjancent *attC* sites part of the same integron \[default: 4000\]
+* **dist_threshold** max distance allowed to consider two adjacent *attC* sites part of the same integron \[default: 4000\]
 * **d_CDS_attC**  max distance allowed between ORF and *attC* site in the same gene cassette. Used to validate the first *attC* site in the array. \[default: 500\]
 
 
@@ -48,12 +48,17 @@ The output is organised in:
 * **orfresults**, dir with Prodigal results, only if *attC* sites have been found.
 
 If *attC* sites have been found, the final results will be organised in the **fastaname.results** file. The columns in this file are:
-|               |   |
-|------         | ------ |
-|id             | sequence id from fastafile |
-|element        | if the hit is a ORF or *attC* site|
-
-| col 3 is      | right-aligned | $1600 |
-| col 2 is      | centered      |   $12 |
-| zebra stripes | are neat      |    $1 |
-start\tend\tstrand\tscore\tlen\tdist\tarray_no\tdist_attC\tVscore\tR\'\tsp\'\tL\'\tloop\tL\"\tsp\"\tR\
+|                |        |
+| ------         | ------ |
+| id             | sequence id from fastafile |
+| element        | if the hit is a CDS (ORF) or *attC* site|
+| start          | start position of the element in the original fastafile |
+| end            | end position of the element in the original fastafile |
+| strand         | strand of the element in the original fastafile |
+| score          | Prodigal score for ORFs, Infernal score for *attC* sites | 
+| len            | length of the element |
+| dist           | distance to previous element. ini0 indicates first in the array|
+| array_no       | CDS_# or attC_#, where # is the number of the gene cassette in the array they belong to |
+| dist_attC      | distance between *attC* sites, from the end of one to the start of another |
+| Vscore         | Viterbi score given by HattCI |
+| R', sp', L', loop, L", sp", R" | start position of each one of the *attC* site motifs |
