@@ -48,7 +48,7 @@ The output is organised in:
 * **orfresults**, dir with Prodigal results, only if *attC* sites have been found.
 
 If *attC* sites have been found, the final results will be organised in the **fastaname.results** file. The columns in this file are:
-
+|               |   |
 |------         | ------ |
 |id             | sequence id from fastafile |
 |element        | if the hit is a ORF or *attC* site|
