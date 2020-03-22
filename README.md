@@ -17,7 +17,7 @@ MIG-finder is a python script and requires other tools to be installed and avail
 ### Instalation
 Download and uncompress the files provided here.
 ```console
-user@machine: $ pip install -e migfinder
+user@machine:~$ pip install -e migfinder
 ```
 
 ### Running
@@ -48,4 +48,10 @@ The output is organised in:
 * **orfresults**, dir with Prodigal results, only if *attC* sites have been found.
 
 If *attC* sites have been found, the final results will be organised in the **fastaname.results** file. The columns in this file are:
-id\telement\tstart\tend\tstrand\tscore\tlen\tdist\tarray_no\tdist_attC\tVscore\tR\'\tsp\'\tL\'\tloop\tL\"\tsp\"\tR\
+|id             | sequence id from fastafile |
+|element        | if the hit is a ORF or *attC* site|
+
+| col 3 is      | right-aligned | $1600 |
+| col 2 is      | centered      |   $12 |
+| zebra stripes | are neat      |    $1 |
+start\tend\tstrand\tscore\tlen\tdist\tarray_no\tdist_attC\tVscore\tR\'\tsp\'\tL\'\tloop\tL\"\tsp\"\tR\
