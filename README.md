@@ -34,7 +34,7 @@ mf.main(fastafile)
 ```
 
 You can opt to give MIG-finder plenty of arguments:
-* **fastafile**   an input .fasta, .fna, or .fa containing the genomic sequences that may contain integron-associated genes. Note that the fasta file needs to be located inside migfinder-master/migfinder. 
+* **fastafile**   an input .fasta, .fna, or .fa containing the genomic sequences that may contain integron-associated genes. Note that the fasta file needs to be located inside migfinder-master/migfinder  
 * **both**        logical value that indicates if both the ordinary sequences and the complementary sequence should be processed \[default: True\]
 * **nseq**        HattCI reads x sequences at a time and processes them before reading the next x sequences, in order to avoid overextending RAM. This flag gives the option to manually choose number of sequences to read, in the case of large sequences, reduce it \[default: 1000\]
 * **nthread**     HattCI may run a large part of the computations in parallel, i.e. let different threads process a set of sequences, which in turn gives a reduced computation time. The parallelization works best when processing larger chunks of sequences at a time \[default: 6\]
