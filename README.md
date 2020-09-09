@@ -20,6 +20,12 @@ Download and uncompress the files provided here. In the directory where setup.py
 user@machine:~$ pip install -e migfinder
 ```
 
+Alternatively, clone the repository and then:
+
+1. unzip the folder
+2. cd migfinder-master/migfinder
+3. run make
+
 ### Running
 Recommended to create a folder to each fastafile analysed. From this folder, start python and run:
 ```python
