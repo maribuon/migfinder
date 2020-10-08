@@ -15,7 +15,7 @@ MIG-finder is a python script and requires other tools to be installed and avail
 * [Prodigal 2.6.2+](http://github.com/hyattpd/Prodigal)
 
 ### Instalation
-Download and uncompress the files provided here. In the directory where setup.py and migfinder directory are located run: 
+Download and uncompress the files provided here. In the directory where migfinder directory is located run: 
 ```console
 user@machine:~$ pip install -e migfinder
 ```
@@ -45,6 +45,8 @@ You can opt to give MIG-finder plenty of arguments:
 * **dist_threshold** max distance allowed to consider two adjacent *attC* sites part of the same integron \[default: 4000\]
 * **d_CDS_attC**  max distance allowed between ORF and *attC* site in the same gene cassette. Used to validate the first *attC* site in the array \[default: 500\]
 
+### Example data
+Use the file mgm4570162.3.050.1.fasta.zip provided in the package to test your installation.
 
 ### Output
 The output is organised in:
