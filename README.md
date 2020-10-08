@@ -30,7 +30,7 @@ Alternatively, clone the repository and then:
 Recommended to create a folder to each fastafile analysed. From this folder, start python and run:
 ```python
 import migfinder as mf
-mf.main(/whole/path/to/fastafile)
+mf.main("/whole/path/to/fastafile")
 ```
 **Note that you need to provide the full path to your fasta even if you have it in your cwd.**
 
