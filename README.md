@@ -30,8 +30,9 @@ Alternatively, clone the repository and then:
 Recommended to create a folder to each fastafile analysed. From this folder, start python and run:
 ```python
 import migfinder as mf
-mf.main(fastafile)
+mf.main(/whole/path/to/fastafile)
 ```
+**Note that you need to provide the full path to your fasta even if you have it in your cwd.**
 
 You can opt to give MIG-finder plenty of arguments:
 * **fastafile**   an input .fasta, .fna, or .fa containing the genomic sequences that may contain integron-associated genes. Note that the fasta file needs to be located inside migfinder-master/migfinder  
@@ -46,7 +47,7 @@ You can opt to give MIG-finder plenty of arguments:
 * **d_CDS_attC**  max distance allowed between ORF and *attC* site in the same gene cassette. Used to validate the first *attC* site in the array \[default: 500\]
 
 ### Example data
-Use the file mgm4570162.3.050.1.fasta.zip provided in the package to test your installation.
+Use the file mgm4570162.3.050.1.fasta.zip provided in the package to test your installation. Notice you need to unzip the file first :) 
 
 ### Output
 The output is organised in:
