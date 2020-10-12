@@ -19,8 +19,7 @@ import numpy as np
 from Bio import SeqIO
 import pkg_resources
 
-#cm_model= pkg_resources.resource_filename('migfinder', 'cm_model/selection109_oriR.cm')
-cm_model= os.path.abspath(mf.cm_model)
+cm_model= pkg_resources.resource_filename('migfinder', 'cm_model/selection109_oriR.cm')
 #---------------------------------------------------------------------------#
 
 
