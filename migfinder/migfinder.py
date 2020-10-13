@@ -17,9 +17,11 @@
 import os, ntpath, re, csv, sys
 import numpy as np
 from Bio import SeqIO
-import pkg_resources
+#import pkg_resources
 
-cm_model= pkg_resources.resource_filename('migfinder', 'cm_model/selection109_oriR.cm')
+#cm_model= pkg_resources.resource_filename('migfinder', 'cm_model/selection109_oriR.cm')
+this_dir, this_file = os.path.split(__file__)
+cm_model= os.path.join(this_dir, 'cm_model', 'selection109_oriR.cm' )
 #---------------------------------------------------------------------------#
 
 
