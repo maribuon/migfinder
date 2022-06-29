@@ -14,49 +14,64 @@
 
 
 #---------------------------------------------------------------------------#
-import os, ntpath, re, csv, sys
-import numpy as np
+import os, path, re, csv, sys
+import subprocess
 from Bio import SeqIO
-#import pkg_resources
 
-#cm_model= pkg_resources.resource_filename('migfinder', 'cm_model/selection109_oriR.cm')
-this_dir, this_file = os.path.split(__file__)
-cm_model= os.path.join(this_dir, 'cm_model', 'selection109_oriR.cm' )
+import logging
+
 #---------------------------------------------------------------------------#
 
+# TODO: check name
+logger = logging.basicConfig(__name__)
 
 #---------------------------------------------------------------------------#
 # HattCI call
-def hattci(fastafile, out, both=True, nseq = 1000, nthread = 6):
-	# creatinga  dir for the hmm results	
-	if not os.path.exists("hmmresults"):
-		os.makedirs("hmmresults")
-	os.chdir("hmmresults")
+def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
+	# creating a dir for the hmm results
+	hmmer_results = os.path.join(output_directory, "hmmresults")
+	os.makedirs(hmmer_results, exist_ok=True)
+	
+	# os.chdir("hmmresults")
+	output_file = f"{hmmer_results}/{os.path.basename(fastafile)}"
+	output_file_tmp = f"{output_file}.tmp"
+
 	# calling hattci, both strands or not?
-	if both == True:
-		os.system("hattci.out -b -s " + str(nseq) + " -t " + str(nthread) + " " + fastafile + " " + out + ".tmp > " + out + ".hmmlog" )
-	else:
-		os.system("hattci.out -s " + str(nseq) + " -t " + str(nthread) + " " + fastafile + " " + out + ".tmp > " + out + ".hmmlog" )
+	params = [
+		"hattci.out",
+		"-s",
+		str(nseq),
+		"-t",
+		str(nthread),
+		fastafile,
+		output_file_tmp,
+	]
+	# guardar el stdout en un hmmlog
+	if both:
+		params.insert("-b", 0)
+	
+	subprocess.run(params)
+
 	#--------------#
 	# parsing file
 	#--------------#
-	filein = open(out+".tmp")
-	fileout = open(out+".hmm",'w')
-	# extracting only table from the results
-	for line in filein.readlines():
-		# removing first line with column names
-		if 'hit' in line:
-			continue
-		# stopping if ------------- line is found
-		elif re.match(r'-----',line):
-			break			
-		else:
-			fileout.write(line)
-	fileout.close()
-	filein.close()
-	os.system("rm "+out+".tmp")
-	os.chdir("..")
-	os.system("mv hmmresults/outHattCI.fasta hmmresults/"+out+"_hattci.fasta")
+	with open(output_file_tmp, "r") as file_in, open(out + ".hmm", "w") as file_out:
+		# extracting only table from the results
+		for line in file_in.readlines():
+			# removing first line with column names
+			if 'hit' in line:
+				continue
+			# stopping if ------------- line is found
+			elif re.match(r'-----',line):
+				break
+			else:
+				file_out.write(line)
+	os.unlink(output_file_tmp)
+	# TODO: it is possible that outHattCI.fasta will be written in the base dir
+	os.rename(f"{hmmer_results}/outHattCI.fasta", f"{output_file}_hattci.fasta")
+	
+	return f"{output_file}_hattci.fasta"
+
 #---------------------------------------------------------------------------#
 
 
@@ -65,38 +80,44 @@ def hattci(fastafile, out, both=True, nseq = 1000, nthread = 6):
 # NOTE: Infernal score both strands and do not pick one.
 # HattCI picks the best
 # therefore, when results are combined, only one strand can be selected.
-def infernal(fastafile, out, cm_model= cm_model):
-	# creatinga  dir for the hmm results	
-	if not os.path.exists("cmresults"):
-		os.makedirs("cmresults")
-	os.chdir("cmresults")
+def infernal(fastafile, output_directory, cm_model=cm_model):
+	# creating a dir for the hmm results
+	cmresults_out_dir = f"{output_directory}/cmresults"
+	output_file = os.path.basename(fastafile)
+	output_file_tmp = f"{cmresults_out_dir}/{output_file}.tmp"
+
+	os.makedirs(cmresults_out_dir, exist_ok=True)
+	params = [
+		"cmsearch",
+		"--max",
+		"-o",
+		output_file_tmp,
+		cm_model,
+		fastafile
+	]
 	# calling infernal
-	os.system("cmsearch --max -o " + out+".tmp " + cm_model + " " + fastafile)
+	subprocess.run(params)
+
 	#--------------#
 	# parsing file
 	#--------------#
-	filein = open(out+".tmp")
-	fileout = open(out+".cm",'w')
-	filelog = open(out+".cmlog",'w')
-	# extracting only table from the results
-	for line in filein.readlines():
-		# creating cmlog
-		if re.match(r'\#',line):
-			filelog.write(line)	
-		# writing the table part
-		elif re.search('\(\d+\)',line):
-			fileout.write(line)
-		elif "Hit alignments" in line:
-			break
-	fileout.close()
-	filein.close()
-	os.chdir("..")
-	os.system("rm cmresults/"+out+".tmp")
+	with open(output_file_tmp) as filein, open(output_file + ".cm",'w') as fileout, open(output_file + ".cmlog",'w') as filelog:
+		# extracting only table from the results
+		for line in filein.readlines():
+			# creating cmlog
+			if re.match(r'\#',line):
+				filelog.write(line)	
+			# writing the table part
+			elif re.search('\(\d+\)',line):
+				fileout.write(line)
+			elif "Hit alignments" in line:
+				break
+	os.unlink(output_file_tmp)
 #---------------------------------------------------------------------------#
 
 #---------------------------------------------------------------------------#
 # Filtering: Process CM results into only one table file
-def posproc(fastafile, out, k_cm = 20, dist_threshold = 4000):
+def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	remove_attC_wrongstrand = 0
 	# --------------- CM -------------- #
 	# converting cm into an array
@@ -285,16 +306,15 @@ def posproc(fastafile, out, k_cm = 20, dist_threshold = 4000):
 	else:
 		table = []
 	#
-	print "attC hits from pipeline: "+str(len(table))
-	fileout = open(out+".filtering",'w')
-	fileout.write("Total_attC:	"+str(len(table))+'\n')
-	fileout.write("Del_attC_ws:	"+str(remove_attC_wrongstrand)+'\n')
-	fileout.close()
+	logger.info(f"attC hits from pipeline: {len(table)}")
+	with open(out+".filtering",'w') as fileout:
+		fileout.write("Total_attC:	" + str(len(table)) + '\n')
+		fileout.write("Del_attC_ws:	" + str(remove_attC_wrongstrand) + '\n')
 	# ----------- Saving results table -------------- #
 	Mcm = len(table)
 	if table:
 		# selecting coordinates for the table from hmmresults to cmresults
-		tmp = "hmmresults/"+out+".hmm"
+		tmp = "hmmresults/" + out + ".hmm"
 		fhmm = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
 		Mhmm = len(fhmm)
 		# opening file to save
@@ -377,7 +397,7 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 	m = 1		
 	while m < MattC:
 		if data[m-1] == data[m]:
-			print "Warning: duplicated hit (attC)! Check for duplicated entry in the fasta file"
+			logger.warn("Warning: duplicated hit (attC)! Check for duplicated entry in the fasta file")
 			del data[m]
 			m -= 1
 			MattC = len(data)
@@ -403,7 +423,7 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 				if data[m][0] == data[mm][0] and data[mm][2]-int(data[mm-1][3])< dist_threshold:
 					nintegron = nintegron +1
 					if (first == True):
-						nattC = nattC+1						
+						nattC = nattC+1
 						nintegron = nintegron -1
 						hits = hits +1
 						# write mm
@@ -450,7 +470,7 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 		m = 1	
 		while m < M:
 			if data[m-1][0] == data[m][0] and data[m-1][1] == data[m][1] and data[m-1][2] == data[m][2] and data[m-1][3] == data[m][3]:
-				print "Warning: duplicated hit! Check for duplicated entry in the fasta file"
+				logger.warn("Warning: duplicated hit! Check for duplicated entry in the fasta file")
 				del data[m]
 				m -= 1
 				M = len(data)
@@ -875,31 +895,36 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 
 
 #---------------------------------------------------------------------------#
-def main(fastafile, both=True, nseq= 1000, nthread = 6, cm_model=cm_model, k_cm=20, k_orf=0, save_orf=True, dist_threshold = 4000, d_CDS_attC = 500):
+def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, save_orf=True, dist_threshold=4000, d_CDS_attC=500):
 	# creating outfile name
-	out = ntpath.basename(fastafile)
-	if ".fa" in out:
-		out = out.split(".fa")[0]
-	elif ".fna" in out:
-		out = out.split(".fna")[0]
-	else:
-		"Unknown file format, please input a .fasta, .fa or .fna file."
+	file_name = os.path.basename(fastafile)
+	if file_name not in [".fa", ".fna"]:
+		logger.error("Unknown file format, please input a .fasta, .fa or .fna file.")
 		sys.exit(1)
+	
+	if not cm_model:
+		this_dir, _ = os.path.split(__file__)
+		cm_model = os.path.join(this_dir, 'cm_model', 'selection109_oriR.cm')
+
 	# calling hattci
-	hattci(fastafile, out, nseq= nseq, nthread = nthread)
-	print "HattCI done!"
+	hattci_fasta = hattci(fastafile, output_directory, nseq= nseq, nthread = nthread)
+	
+	logger.info("HattCI done!")
+
 	# calling infernal + pos_processing
-	infernal(fastafile="../hmmresults/"+out+"_hattci.fasta", out=out)
-	posproc(fastafile, out, k_cm)
-	#os.system("rm hmmresults/"+out+"_hattci.fasta")
-	print "Infernal done!"
-	# calling prodigal
-	if os.path.exists("cmresults/"+out+"_attC.res"):
-		prodigal(fastafile="../cmresults/"+out+"_infernal.fasta", out=out, save_orf=save_orf )
-		print "Prodigal done! Staring pos-processing..."
-		#os.system("rm cmresults/"+out+"_infernal.fasta")
+	infernal(hattci_fasta, output_directory)
+
+	logger.info("Infernal done!")
+
+	posproc(fastafile, output_directory, k_cm)
+
+	logger.info("Post proc done!")
+
+	if os.path.exists("cmresults/" + out + "_attC.res"):
+		prodigal(fastafile="../cmresults/" + out + "_infernal.fasta", out=out, save_orf=save_orf )
+		logger.info("Prodigal done! Staring pos-processing...")
 		posproc2(out, k_orf)
-		print "Pos-processing done!"
+		logger.info("Pos-processing done!")
 	else:
-		print "No attC found, skipping Prodigal step..."
+		logger.info("No attC found, skipping Prodigal step...")
 #---------------------------------------------------------------------------#
