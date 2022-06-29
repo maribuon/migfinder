@@ -21,11 +21,6 @@ from Bio import SeqIO
 import logging
 
 #---------------------------------------------------------------------------#
-
-# TODO: check name
-logger = logging.basicConfig(__name__)
-
-#---------------------------------------------------------------------------#
 # HattCI call
 def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	# creating a dir for the hmm results
@@ -306,7 +301,7 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	else:
 		table = []
 	#
-	logger.info(f"attC hits from pipeline: {len(table)}")
+	logging.info(f"attC hits from pipeline: {len(table)}")
 	with open(out+".filtering",'w') as fileout:
 		fileout.write("Total_attC:	" + str(len(table)) + '\n')
 		fileout.write("Del_attC_ws:	" + str(remove_attC_wrongstrand) + '\n')
@@ -397,7 +392,7 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 	m = 1		
 	while m < MattC:
 		if data[m-1] == data[m]:
-			logger.warn("Warning: duplicated hit (attC)! Check for duplicated entry in the fasta file")
+			logging.warning("Warning: duplicated hit (attC)! Check for duplicated entry in the fasta file")
 			del data[m]
 			m -= 1
 			MattC = len(data)
@@ -470,7 +465,7 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 		m = 1	
 		while m < M:
 			if data[m-1][0] == data[m][0] and data[m-1][1] == data[m][1] and data[m-1][2] == data[m][2] and data[m-1][3] == data[m][3]:
-				logger.warn("Warning: duplicated hit! Check for duplicated entry in the fasta file")
+				logging.warning("Warning: duplicated hit! Check for duplicated entry in the fasta file")
 				del data[m]
 				m -= 1
 				M = len(data)
@@ -898,8 +893,8 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, save_orf=True, dist_threshold=4000, d_CDS_attC=500):
 	# creating outfile name
 	file_name = os.path.basename(fastafile)
-	if file_name not in [".fa", ".fna"]:
-		logger.error("Unknown file format, please input a .fasta, .fa or .fna file.")
+	if file_name not in [".fasta", ".fa", ".fna"]:
+		logging.error("Unknown file format, please input a .fasta, .fa or .fna file.")
 		sys.exit(1)
 	
 	if not cm_model:
@@ -909,22 +904,22 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 	# calling hattci
 	hattci_fasta = hattci(fastafile, output_directory, nseq= nseq, nthread = nthread)
 	
-	logger.info("HattCI done!")
+	logging.info("HattCI done!")
 
 	# calling infernal + pos_processing
 	infernal(hattci_fasta, output_directory)
 
-	logger.info("Infernal done!")
+	logging.info("Infernal done!")
 
 	posproc(fastafile, output_directory, k_cm)
 
-	logger.info("Post proc done!")
+	logging.info("Post proc done!")
 
 	if os.path.exists("cmresults/" + out + "_attC.res"):
 		prodigal(fastafile="../cmresults/" + out + "_infernal.fasta", out=out, save_orf=save_orf )
-		logger.info("Prodigal done! Staring pos-processing...")
+		logging.info("Prodigal done! Staring pos-processing...")
 		posproc2(out, k_orf)
-		logger.info("Pos-processing done!")
+		logging.info("Pos-processing done!")
 	else:
-		logger.info("No attC found, skipping Prodigal step...")
+		logging.info("No attC found, skipping Prodigal step...")
 #---------------------------------------------------------------------------#
