@@ -404,7 +404,7 @@ def prodigal(fastafile, output_directory, save_orf):
 
 #---------------------------------------------------------------------------#
 # Filtering2: Process CM results into only one table file
-def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
+def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 	remove_not_int = 0
 	remove_k = 0
 	remove_overlap = 0
@@ -476,7 +476,7 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 	# ---------------------------------------------------------- #
 	if MattC > 1:
 	# -------------- opening ORF predictions ------------------- #
-		tmp = "orfresults/"+out+"_orf.gff"
+		tmp = f"{orfresults_out_dir}/{output_file}_orf.gff"
 		orf = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
 		total_orf = len(orf)
 		Morf = len(orf)
@@ -899,22 +899,25 @@ def posproc2(out,k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 							break
 			fcoord.close()
 
-			os.system("rm orfresults/"+out+"_ALLorf.faa")
-			os.system("rm orfresults/"+out+"_ALLorf.fna")
-		# ------------------------------------------------------ #
+			os.unlink(output_file_faa)
+			os.unlink(output_file_fna)
+
+	# ------------------------------------------------------ #
 	# ---------------------------------------------------- #
 	# Saving info about removed ORFs
-		fileout = open(out+".filtering",'a')
-		fileout.write("Del_attC_ol:	"+str(remove_overlap_attC)+'\n')
-		fileout.write("Total_orfs:	"+str(total_orf)+'\n')
-		fileout.write("Del_orf_k:		"+str(remove_k)+'\n')
-		fileout.write("Del_orf_ol:	"+str(remove_overlap)+'\n')
-		fileout.write("Del_orf_ni:	"+str(remove_not_int)+'\n')
-		#fileout.write("Del_attC_ws:	"+str(remove_attC_wrongstrand)+'\n')
-		fileout.write("\n")
-		fileout.write("ol= overlap, k= score_below_threshold, ni= not_integron\n")
-		fileout.write("ws= wrong_strand\n")
-		fileout.close()
+
+		with open(f"{output_dir}/{output_file}.filtering", 'a') as fileout:	
+			fileout = open(output_file+".filtering",'a')
+			fileout.write("Del_attC_ol:\t"+str(remove_overlap_attC)+'\n')
+			fileout.write("Total_orfs:\t"+str(total_orf)+'\n')
+			fileout.write("Del_orf_k:\t"+str(remove_k)+'\n')
+			fileout.write("Del_orf_ol:\t"+str(remove_overlap)+'\n')
+			fileout.write("Del_orf_ni:\t"+str(remove_not_int)+'\n')
+			#fileout.write("Del_attC_ws:	"+str(remove_attC_wrongstrand)+'\n')
+			fileout.write("\n")
+			fileout.write("ol= overlap, k= score_below_threshold, ni= not_integron\n")
+			fileout.write("ws= wrong_strand\n")
+
 #---------------------------------------------------------------------------#
 
 
@@ -948,7 +951,7 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 	if os.path.exists("cmresults/" + out + "_attC.res"):
 		prodigal(fastafile="../cmresults/" + out + "_infernal.fasta", out=out, save_orf=save_orf )
 		logging.info("Prodigal done! Staring pos-processing...")
-		posproc2(out, k_orf)
+		posproc2(output_directory, k_orf)
 		logging.info("Pos-processing done!")
 	else:
 		logging.info("No attC found, skipping Prodigal step...")
