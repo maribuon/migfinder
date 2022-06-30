@@ -355,20 +355,50 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 #---------------------------------------------------------------------------#
 # Prodigal call
 # therefore, when results are combined, only one strand can be selected.
-def prodigal(fastafile, out, save_orf):
-	# creatinga  dir for the prodigal results	
-	if not os.path.exists("orfresults"):
-		os.makedirs("orfresults")
-	os.chdir("orfresults")
-	# calling prodigal
+def prodigal(fastafile, output_directory, save_orf):
+	# creating a dir for the prodigal results
+	orfresults_out_dir = f"{output_directory}/orfresults"
+	output_file = os.path.basename(fastafile)
+	output_file_gff = f"{orfresults_out_dir}/{output_file}_orf.gff"
+	
+	os.makedirs(orfresults_out_dir, exist_ok=True)
+	
+	params = [
+		"prodigal",
+		"-i",
+		fastafile,
+		"-p",
+		"meta",
+		"-o",
+		output_file_gff,
+		"-f",
+		"gff",
+		"-q",
+		"-c"
+	]
+	
 	if save_orf:
-		os.system("prodigal -i " + fastafile + " -p meta -o " + out+"_orf.gff -f gff -q -c -a "+out+"_ALLorf.faa -d "+out+"_ALLorf.fna")
-	else:
-		os.system("prodigal -i " + fastafile + " -p meta -o " + out+"_orf.gff -f gff -q -c")
-	os.system("grep \"CDS\" " + out+"_orf.gff > tmp.gff")
-	os.system("mv tmp.gff " + out+"_orf.gff")
-	#--------------#
-	os.chdir("..")
+		output_file_faa = f"{orfresults_out_dir}/{output_file}_ALLorf.faa"
+		output_file_fna = f"{orfresults_out_dir}/{output_file}_ALLorf.fna"	
+		additional_param=[
+			"-a",
+			output_file_faa,
+			"-d",
+			output_file_fna
+		]
+		params=params+additional_param
+
+	# calling prodigal
+	subprocess.run(params)
+
+	# Parsing the gff output file to extract CDS
+	with open(output_file_gff) as gffin, open("tmp.gff",'w') as fileout:
+		for line in gffin.readlines():
+			if line.split('\t')[2] == 'CDS':
+				fileout.write(line)
+				
+	os.rename("tmp.gff", f"{output_file_gff}")
+
 #---------------------------------------------------------------------------#
 
 
