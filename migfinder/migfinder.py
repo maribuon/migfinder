@@ -906,17 +906,15 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 	# ---------------------------------------------------- #
 	# Saving info about removed ORFs
 
-		with open(f"{output_dir}/{output_file}.filtering", 'a') as fileout:	
-			fileout = open(output_file+".filtering",'a')
-			fileout.write("Del_attC_ol:\t"+str(remove_overlap_attC)+'\n')
-			fileout.write("Total_orfs:\t"+str(total_orf)+'\n')
-			fileout.write("Del_orf_k:\t"+str(remove_k)+'\n')
-			fileout.write("Del_orf_ol:\t"+str(remove_overlap)+'\n')
-			fileout.write("Del_orf_ni:\t"+str(remove_not_int)+'\n')
-			#fileout.write("Del_attC_ws:	"+str(remove_attC_wrongstrand)+'\n')
-			fileout.write("\n")
-			fileout.write("ol= overlap, k= score_below_threshold, ni= not_integron\n")
-			fileout.write("ws= wrong_strand\n")
+		with open(f"{output_dir}/{output_file}.filtering", 'a') as fileout:
+			writer = csv.writer(fileout, delimiter="\t")
+    			writer.writerow(["Del_attC_ol:", str(remove_overlap_attC)])
+    			writer.writerow(["Total_orfs:", str(total_orf)])
+			writer.writerow(["Del_orf_k:", str(remove_k)])
+			writer.writerow(["Del_orf_ol:", str(remove_overlap)])
+			writer.writerow(["Del_orf_ni:", str(remove_not_int)])
+			writer.writerow(["ol= overlap, k= score_below_threshold, ni= not_integron, ws= wrong_strand"])	
+	
 
 #---------------------------------------------------------------------------#
 
