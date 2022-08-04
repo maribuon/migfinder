@@ -948,9 +948,28 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 
 	if os.path.exists("cmresults/" + out + "_attC.res"):
 		prodigal(fastafile="../cmresults/" + out + "_infernal.fasta", out=out, save_orf=save_orf )
-		logging.info("Prodigal done! Staring pos-processing...")
+		logging.info("Prodigal done! Starting pos-processing...")
 		posproc2(output_directory, k_orf)
 		logging.info("Pos-processing done!")
 	else:
 		logging.info("No attC found, skipping Prodigal step...")
+		
+		
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-f", "fasta", required=True, help="Input fasta file")
+	parser.add_argument("-o", "output", required=True, help="Output directory")	
+	parser.add_argument("-c", "cmmodel", required=False, help="Covariance model used by Infernal to validate the attC site secondary structure [default=None]")
+	parser.add_argument("-b", "strand", required=False, help="Perform HattCI in both strands [default=True]")
+	parser.add_argument("-n", "seqs", required=False, help="Number of sequences processed at a time by HattCI [deafult=1000]")
+	parser.add_argument("-t", "threads", required=False, help="Number of threads to run HattCI, [default=6]")	
+	parser.add_argument("-f", "score", required=False, help="Threshold used to filter Infernal results [default=20]")
+	parser.add_argument("-r", "orf", required=False, help="Threshold used to filter HattCI results [default=0]")
+	parser.add_argument("-s", "save", required=False, help="Save ORF results in a separate fasta file [default=True]")
+	parser.add_argument("-a", "adist", required=False, help="Max distance allowed to consider two adjacent attC sites part of the same integron [default=4000]")	
+	parser.add_argument("-d", "odist", required=False, help="Max distance allowed between ORF and attC site in the same gene cassette [default=500]")
+	args = parser.parse_args()
+
+	main(args.fasta, args.output, args.cmmodel, args.strand , args.seqs , args.threads , args.score , args.orf , args.save , args.adist , args.odist)	
+
 #---------------------------------------------------------------------------#
