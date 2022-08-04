@@ -13,4 +13,9 @@ setup(name='migfinder',
 			package_dir={'migfinder': 'migfinder/'},
 			package_data={"migfinder": ["cm_model/selection109_oriR.cm"]
 			},
+      entry_points={
+	      'console_scripts': [
+		      'migfinder = migfinder:main',
+	      ],
+      },
 )
