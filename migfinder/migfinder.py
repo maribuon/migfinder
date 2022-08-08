@@ -14,8 +14,18 @@
 
 
 #---------------------------------------------------------------------------#
-import os, path, re, csv, sys
+import os
+import re
+import csv
+import sys
+import argparse
 import subprocess
+
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
+
 from Bio import SeqIO
 
 import logging
@@ -75,7 +85,7 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 # NOTE: Infernal score both strands and do not pick one.
 # HattCI picks the best
 # therefore, when results are combined, only one strand can be selected.
-def infernal(fastafile, output_directory, cm_model=cm_model):
+def infernal(fastafile, output_directory, cm_model):
 	# creating a dir for the hmm results
 	cmresults_out_dir = f"{output_directory}/cmresults"
 	output_file = os.path.basename(fastafile)
@@ -908,8 +918,8 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 
 		with open(f"{output_dir}/{output_file}.filtering", 'a') as fileout:
 			writer = csv.writer(fileout, delimiter="\t")
-    			writer.writerow(["Del_attC_ol:", str(remove_overlap_attC)])
-    			writer.writerow(["Total_orfs:", str(total_orf)])
+			writer.writerow(["Del_attC_ol:", str(remove_overlap_attC)])
+			writer.writerow(["Total_orfs:", str(total_orf)])
 			writer.writerow(["Del_orf_k:", str(remove_k)])
 			writer.writerow(["Del_orf_ol:", str(remove_overlap)])
 			writer.writerow(["Del_orf_ni:", str(remove_not_int)])
@@ -929,8 +939,8 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 		sys.exit(1)
 	
 	if not cm_model:
-		this_dir, _ = os.path.split(__file__)
-		cm_model = os.path.join(this_dir, 'cm_model', 'selection109_oriR.cm')
+		my_resources = files('migfinder') / 'cm_model'
+		cm_model = (my_resources / 'selection109_oriR.cm')
 
 	# calling hattci
 	hattci_fasta = hattci(fastafile, output_directory, nseq= nseq, nthread = nthread)
@@ -938,7 +948,7 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 	logging.info("HattCI done!")
 
 	# calling infernal + pos_processing
-	infernal(hattci_fasta, output_directory)
+	infernal(hattci_fasta, output_directory, cm_model)
 
 	logging.info("Infernal done!")
 
@@ -948,9 +958,32 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 
 	if os.path.exists("cmresults/" + out + "_attC.res"):
 		prodigal(fastafile="../cmresults/" + out + "_infernal.fasta", out=out, save_orf=save_orf )
-		logging.info("Prodigal done! Staring pos-processing...")
+		logging.info("Prodigal done! Starting pos-processing...")
 		posproc2(output_directory, k_orf)
 		logging.info("Pos-processing done!")
 	else:
 		logging.info("No attC found, skipping Prodigal step...")
+		
+
+def migfinder_cli():
+	parser = argparse.ArgumentParser(description="Metagenomic Integron-associated Gene finder")
+	parser.add_argument("-f", "--fasta", required=True, help="Input fasta file")
+	parser.add_argument("-o", "--output", required=True, help="Output directory")	
+	parser.add_argument("-c", "--cmmodel", required=False, help="Covariance model used by Infernal to validate the attC site secondary structure [default=None]")
+	parser.add_argument("-b", "--strand", required=False, help="Perform HattCI in both strands [default=True]")
+	parser.add_argument("-n", "--seqs", required=False, help="Number of sequences processed at a time by HattCI [deafult=1000]")
+	parser.add_argument("-t", "--threads", required=False, help="Number of threads to run HattCI, [default=6]")	
+	parser.add_argument("-e", "--score", required=False, help="Threshold used to filter Infernal results [default=20]")
+	parser.add_argument("-r", "--orf", required=False, help="Threshold used to filter HattCI results [default=0]")
+	parser.add_argument("-s", "--save", required=False, help="Save ORF results in a separate fasta file [default=True]")
+	parser.add_argument("-a", "--adist", required=False, help="Max distance allowed to consider two adjacent attC sites part of the same integron [default=4000]")	
+	parser.add_argument("-d", "--odist", required=False, help="Max distance allowed between ORF and attC site in the same gene cassette [default=500]")
+	
+	args = parser.parse_args()
+
+	return main(args.fasta, args.output, args.cmmodel, args.strand , args.seqs , args.threads , args.score , args.orf , args.save , args.adist , args.odist)
+
+
+if __name__ == "__main__":
+	migfinder_cli()
 #---------------------------------------------------------------------------#
