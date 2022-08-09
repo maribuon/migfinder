@@ -932,8 +932,8 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 
 #---------------------------------------------------------------------------#
 def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, save_orf=True, dist_threshold=4000, d_CDS_attC=500):
-	# creating outfile name
-	file_name = os.path.basename(fastafile).split('.')[-1]
+	# creating outfile name	
+	file_name = os.path.splitext(fastafile)[1]
 	if file_name not in [".fasta", ".fa", ".fna"]:
 		logging.error("Unknown file format, please input a .fasta, .fa or .fna file.")
 		sys.exit(1)
