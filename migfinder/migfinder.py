@@ -933,7 +933,7 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 #---------------------------------------------------------------------------#
 def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, save_orf=True, dist_threshold=4000, d_CDS_attC=500):
 	# creating outfile name
-	file_name = os.path.basename(fastafile)
+	file_name = os.path.basename(fastafile).split('.')[-1]
 	if file_name not in [".fasta", ".fa", ".fna"]:
 		logging.error("Unknown file format, please input a .fasta, .fa or .fna file.")
 		sys.exit(1)
@@ -967,11 +967,11 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 
 def migfinder_cli():
 	parser = argparse.ArgumentParser(description="Metagenomic Integron-associated Gene finder")
-	parser.add_argument("-f", "--fasta", required=True, help="Input fasta file")
+	parser.add_argument("-f", "--fasta", required=True, help="Input fasta file. Valid extensions are .fasta, .fna, and .fa")
 	parser.add_argument("-o", "--output", required=True, help="Output directory")	
 	parser.add_argument("-c", "--cmmodel", required=False, help="Covariance model used by Infernal to validate the attC site secondary structure [default=None]")
 	parser.add_argument("-b", "--strand", required=False, help="Perform HattCI in both strands [default=True]")
-	parser.add_argument("-n", "--seqs", required=False, help="Number of sequences processed at a time by HattCI [deafult=1000]")
+	parser.add_argument("-n", "--seqs", required=False, help="Number of sequences processed at a time by HattCI [default=1000]")
 	parser.add_argument("-t", "--threads", required=False, help="Number of threads to run HattCI, [default=6]")	
 	parser.add_argument("-e", "--score", required=False, help="Threshold used to filter Infernal results [default=20]")
 	parser.add_argument("-r", "--orf", required=False, help="Threshold used to filter HattCI results [default=0]")
