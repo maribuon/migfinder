@@ -40,7 +40,8 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	# os.chdir("hmmresults")
 	output_file = f"{hmmer_results}/{os.path.basename(fastafile)}"
 	output_file_tmp = f"{output_file}.tmp"
-
+	output_file_log = f"{output_file}.hmmlog"
+	
 	# calling hattci, both strands or not?
 	params = [
 		"hattci.out",
@@ -50,8 +51,9 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 		str(nthread),
 		fastafile,
 		output_file_tmp,
+		">",
+		output_file_log
 	]
-	# guardar el stdout en un hmmlog
 	if both:
 		params.insert(1, "-b")
 	
