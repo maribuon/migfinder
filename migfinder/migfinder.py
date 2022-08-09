@@ -53,7 +53,7 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	]
 	# guardar el stdout en un hmmlog
 	if both:
-		params.append("-b")
+		params.insert(1, "-b")
 	
 	subprocess.run(params)
 
