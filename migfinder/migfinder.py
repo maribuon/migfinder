@@ -74,7 +74,7 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 				file_out.write(line)
 	os.unlink(output_file_tmp)
 	# TODO: it is possible that outHattCI.fasta will be written in the base dir
-	os.rename(f"{hmmer_results}/outHattCI.fasta", f"{output_file}_hattci.fasta")
+	os.rename(f"outHattCI.fasta", f"{output_file}_hattci.fasta")
 	
 	return f"{output_file}_hattci.fasta"
 
