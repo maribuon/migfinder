@@ -55,7 +55,8 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	if both:
 		params.insert(1, "-b")
 	
-	subprocess.run(params, stdout=output_file_log)
+	out_f=open(output_file_log, "w")
+	subprocess.run(params, stdout=out_f)
 
 	#--------------#
 	# parsing file
