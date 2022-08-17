@@ -20,6 +20,7 @@ import csv
 import sys
 import argparse
 import subprocess
+import shutil
 
 try:
     from importlib.resources import files
@@ -74,7 +75,8 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 				file_out.write(line)
 	os.unlink(output_file_tmp)
 	# TODO: it is possible that outHattCI.fasta will be written in the base dir
-	os.rename("outHattCI.fasta", f"{output_file}_hattci.fasta")
+	shutil.move(f"./outHattCI.fasta", f"{output_file}_hattci.fasta")
+	#os.rename("outHattCI.fasta", f"{output_file}_hattci.fasta")
 	
 	return f"{output_file}_hattci.fasta"
 
