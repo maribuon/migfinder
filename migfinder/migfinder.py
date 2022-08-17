@@ -127,13 +127,14 @@ def infernal(fastafile, output_directory, cm_model):
 # Filtering: Process CM results into only one table file
 def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	remove_attC_wrongstrand = 0
+	output_file = os.path.basename(fastafile)
 	# --------------- CM -------------- #
 	# converting cm into an array
 	# extracting tags: acc number + sta + sto
 	# NOTE: because we are filtering HattCI -> Infernal, infernal tag is acc_sta_sto, have to split("_") to extract tags
 	# extracting score	--> cmscore
 	# extracting e-value	--> cmevalue
-	tmp = "cmresults/"+out+".cm"
+	tmp = "cmresults/"+output_file+".cm"
 	fcm = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
 	Mcm = len(fcm)
 	cmtag = []
