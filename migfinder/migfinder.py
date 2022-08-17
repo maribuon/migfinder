@@ -61,7 +61,7 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	#--------------#
 	# parsing file
 	#--------------#
-	with open(output_file_tmp, "r") as file_in, open(out + ".hmm", "w") as file_out:
+	with open(output_file_tmp, "r") as file_in, open(output_file + ".hmm", "w") as file_out:
 		# extracting only table from the results
 		for line in file_in.readlines():
 			# removing first line with column names
