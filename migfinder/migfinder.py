@@ -966,7 +966,7 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 
 	logging.info("Infernal done!")
 
-	posproc(fastafile, output_directory, k_cm)
+	posproc(fastafile, output_directory, k_cm=20)
 
 	logging.info("Post proc done!")
 
