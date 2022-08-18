@@ -162,7 +162,7 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 		fcm[m] = fcm[m][0].split()
 		# removing hits with score lower than threshold k_cm
 		# since CM results are sorted, breaking is sufficient to remove all <k_cm	
-		if float(fcm[m][3]) < k_cm:
+		if float(fcm[m][3]) < float(k_cm):
 			break			
 		# remove end
 		else:
