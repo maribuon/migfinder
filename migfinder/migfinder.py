@@ -132,7 +132,7 @@ def infernal(fastafile, output_directory, cm_model):
 
 #---------------------------------------------------------------------------#
 # Filtering: Process CM results into only one table file
-def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
+def posproc(fastafile, output_directory, k_cm, dist_threshold=4000):
 	remove_attC_wrongstrand = 0
 	cmresults_out_dir = f"{output_directory}/cmresults"
 	basename = os.path.basename(fastafile)	
@@ -151,6 +151,7 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 			clean_line=re.sub("\s+", "\t", line)
 			fcm = clean_line.split('\t')
 			my_score = float(fcm[3])
+			print(type(k_cm))
 			if my_score > float(k_cm):
 				tag = fcm[5]
 				aux = fcm[5].split("_")
