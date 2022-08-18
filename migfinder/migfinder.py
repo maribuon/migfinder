@@ -146,11 +146,9 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	# extracting e-value	--> cmevalue	
 	table=[]
 	with open(tmp, 'r') as filein:
-		for fcm in filein.readlines():
-			fcm = re.sub("\s+", "\t", fcm.strip()).split('\t')
+		for line in filein.readlines():
+			fcm = re.sub("\s+", "\t", line.strip()).split('\t')
 			my_score = fcm[3]
-			print(type(my_score))
-			print(float(my_score))
 			if float(my_score)>float(k_cm):
 				tag = fcm[5]
 				aux = fcm[5].split("_")
