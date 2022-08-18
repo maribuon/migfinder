@@ -38,8 +38,8 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	hmmer_results = os.path.join(output_directory, "hmmresults")
 	os.makedirs(hmmer_results, exist_ok=True)
 	
-	# os.chdir("hmmresults")
-	output_file = f"{hmmer_results}/{os.path.basename(fastafile)}"
+	prefix=os.path.splitext(fastafile)[0]
+	output_file = f"{hmmer_results}/{prefix}"
 	output_file_tmp = f"{output_file}.tmp"
 	output_file_log = f"{output_file}.hmmlog"
 	
@@ -89,12 +89,13 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 # HattCI picks the best
 # therefore, when results are combined, only one strand can be selected.
 def infernal(fastafile, output_directory, cm_model):
-	# creating a dir for the hmm results
-	cmresults_out_dir = f"{output_directory}/cmresults"
-	output_file = os.path.basename(fastafile)
-	output_file_tmp = f"{cmresults_out_dir}/{output_file}.tmp"
-
+	# creating a dir for infernal results	
+	cmresults_out_dir = os.path.join(output_directory, "cmresults")
 	os.makedirs(cmresults_out_dir, exist_ok=True)
+	prefix=os.path.splitext(fastafile)[0].replace('_hattci','')
+	output_file = f"{cmresults_out_dir}/{prefix}"
+	output_file_tmp = f"{output_file}.tmp"
+	
 	params = [
 		"cmsearch",
 		"--max",
@@ -109,7 +110,11 @@ def infernal(fastafile, output_directory, cm_model):
 	#--------------#
 	# parsing file
 	#--------------#
-	with open(output_file_tmp) as filein, open(output_file + ".cm",'w') as fileout, open(output_file + ".cmlog",'w') as filelog:
+	
+	output_file_parse = f"{output_file}.cm"
+	output_file_parse_log = f"{output_file}.cmlog"
+	#with open(output_file_tmp) as filein, open(output_file + ".cm",'w') as fileout, open(output_file + ".cmlog",'w') as filelog:
+	with open(output_file_tmp) as filein, open(output_file_parse, 'w') as fileout, open(output_file_parse_log,'w') as filelog:
 		# extracting only table from the results
 		for line in filein.readlines():
 			# creating cmlog
@@ -121,15 +126,16 @@ def infernal(fastafile, output_directory, cm_model):
 			elif "Hit alignments" in line:
 				break
 	os.unlink(output_file_tmp)
+
 #---------------------------------------------------------------------------#
 
 #---------------------------------------------------------------------------#
 # Filtering: Process CM results into only one table file
 def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	remove_attC_wrongstrand = 0
-	output_file = os.path.basename(fastafile)	
 	cmresults_out_dir = f"{output_directory}/cmresults"
-	tmp = f"{cmresults_out_dir}/{output_file}.cm"
+	prefix=os.path.splitext(fastafile)[0]
+	tmp = f"{cmresults_out_dir}/{prefix}.cm"
 	# --------------- CM -------------- #
 	# converting cm into an array
 	# extracting tags: acc number + sta + sto
@@ -317,7 +323,10 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 		table = []
 	#
 	logging.info(f"attC hits from pipeline: {len(table)}")
-	with open(out+".filtering",'w') as fileout:
+	
+	output_file = f"{cmresults_out_dir}/{prefix}"
+	output_file_filt = f"{output_file}.filtering"	
+	with open(output_file_filt,'w') as fileout:
 		fileout.write("Total_attC:	" + str(len(table)) + '\n')
 		fileout.write("Del_attC_ws:	" + str(remove_attC_wrongstrand) + '\n')
 	# ----------- Saving results table -------------- #
@@ -328,7 +337,8 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 		fhmm = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
 		Mhmm = len(fhmm)
 		# opening file to save
-		fileout = open("cmresults/"+out+"_attC.res",'w')
+		output_file_res=f"{output_file}_attC.res"
+		fileout = open(output_file_res, 'w')
 		names_sel = []
 		for m in range(0,Mcm):
 			names_sel.append(table[m][0])
@@ -357,7 +367,7 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 		names_sel = set(names_sel)
 		names_sel = sorted(names_sel)
 		all_sequences = SeqIO.parse(open(fastafile), "fasta")
-		hits_sequences = "cmresults/"+out+"_infernal.fasta"
+		hits_sequences=f"{output_file}_infernal.fasta"
 		with open(hits_sequences, "w") as f:
 			for seq in all_sequences:
 				if seq.id in names_sel:
