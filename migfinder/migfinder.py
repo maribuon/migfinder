@@ -383,9 +383,6 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 #---------------------------------------------------------------------------#
 # Prodigal call
 # therefore, when results are combined, only one strand can be selected.
-
-prodigal(fastafile=fasta_in, out=output_directory, save_orf=save_orf )
-
 def prodigal(fastafile, output_directory, save_orf):
 	# creating a dir for the prodigal results
 	orfresults_out_dir = f"{output_directory}/orfresults"
