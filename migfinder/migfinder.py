@@ -151,7 +151,6 @@ def posproc(fastafile, output_directory, k_cm, dist_threshold=4000):
 			clean_line=re.sub("\s+", "\t", line)
 			fcm = clean_line.split('\t')
 			my_score = float(fcm[3])
-			print(type(k_cm))
 			if my_score > float(k_cm):
 				tag = fcm[5]
 				aux = fcm[5].split("_")
@@ -324,8 +323,8 @@ def posproc(fastafile, output_directory, k_cm, dist_threshold=4000):
 	Mcm = len(table)
 	if table:
 		# selecting coordinates for the table from hmmresults to cmresults
-		tmp = "hmmresults/" + out + ".hmm"
-		fhmm = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
+		tmp = f"{output_directory}/hmmresults/{prefix}.hmm"
+		fhmm = list(csv.reader(open(tmp, 'r'),delimiter='\t'))
 		Mhmm = len(fhmm)
 		# opening file to save
 		output_file_res=f"{output_file}_attC.res"
