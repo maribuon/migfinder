@@ -161,7 +161,7 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 				cmevalue = fcm[2]
 				# The section below will use coordinates from HattCI, which is desirable to maintain R'' and R' sites.
 				if aux_sta <= aux_sto:
- 					sta = aux_sta
+					sta = aux_sta
 					sto = aux_sto
 					strand = "+"
 				else:
