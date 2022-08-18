@@ -112,7 +112,6 @@ def infernal(fastafile, output_directory, cm_model):
 	#--------------#
 	# parsing file
 	#--------------#
-	
 	output_file_parse = f"{output_file}.cm"
 	output_file_parse_log = f"{output_file}.cmlog"
 	#with open(output_file_tmp) as filein, open(output_file + ".cm",'w') as fileout, open(output_file + ".cmlog",'w') as filelog:
@@ -144,53 +143,39 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	# extracting tags: acc number + sta + sto
 	# NOTE: because we are filtering HattCI -> Infernal, infernal tag is acc_sta_sto, have to split("_") to extract tags
 	# extracting score	--> cmscore
-	# extracting e-value	--> cmevalue
-	fcm = list(csv.reader(open(tmp, 'r'),delimiter='\t'))
-	Mcm = len(fcm)
-	cmtag = []
-	cmscore = []
-	cmevalue = []
-	sta = []
-	sto = []
-	names = []
-	fhmm = []		# Viterbi score from hmm (Vscore)
-	table = []
-	strand = []
-	tag = []
-	m = 0
-	while m < Mcm:
-		fcm[m] = fcm[m][0].split()
-		# removing hits with score lower than threshold k_cm
-		# since CM results are sorted, breaking is sufficient to remove all <k_cm	
-		if float(fcm[m][3]) < float(k_cm):
-			break			
-		# remove end
-		else:
-			tag.append(fcm[m][5])
-			aux = fcm[m][5].split("_")
-			names.append("_".join(aux[0:len(aux)-2]))
-			cmtag.append(names[m]+"_"+aux[len(aux)-2]+'_'+aux[len(aux)-1])
-			aux_sta = int(aux[-2])
-			aux_sto = int(aux[-1])
-			cmscore.append(fcm[m][3])
-			cmevalue.append(fcm[m][2])
-		# The section below will use coordinates from HattCI, which is desirable to maintain R'' and R' sites.
-			if aux_sta <= aux_sto:
-				sta.append(aux_sta)
-				sto.append(aux_sto)
-				strand.append("+")
-			else:
-				sto.append(aux_sta)
-				sta.append(aux_sto)
-				strand.append("-")
-			last = fcm[m][len(fcm[m])-1]
-			if last == 'REVERSED':
-				fhmm.append(fcm[m][len(fcm[m])-2])
-			else:
-				fhmm.append(fcm[m][len(fcm[m])-1])
-			# saving table
-			table.append([names[m],int(sta[m]),sto[m], strand[m],fhmm[m],cmscore[m],cmevalue[m]])		
-		m = m + 1
+	# extracting e-value	--> cmevalue	
+	table=[]
+	with open(tmp, 'r') as filein:
+		for fcm in filein.readlines():
+			fcm = re.sub("\s+", "\t", fcm.strip()).split('\t')
+			my_score = fcm[3]
+			if float(my_score)>float(k_cm):
+				tag = fcm[5]
+				aux = fcm[5].split("_")
+				name = "_".join(aux[0:-2])
+				coor = aux[-2]+'_'+aux[-1]
+				cmtag = name+'_'+coor
+				aux_sta = int(aux[-2])
+				aux_sto = int(aux[-1])
+				cmscore = fcm[3]
+				cmevalue = fcm[2]
+				# The section below will use coordinates from HattCI, which is desirable to maintain R'' and R' sites.
+				if aux_sta <= aux_sto:
+ 					sta = aux_sta
+					sto = aux_sto
+					strand = "+"
+				else:
+					sto = aux_sta
+					sta = aux_sto
+					strand = "-"
+				last = fcm[-1]
+				if last == 'REVERSED':  # Viterbi score from hmm (Vscore)
+					fhmm = fcm[-2]
+				else:
+ 					fhmm = fcm[-1]
+				# saving table
+				table.append([name,sta,sto,strand,fhmm,cmscore,cmevalue])
+		
 	# ----------------- sorting ----------------------- #
 	table = sorted(table, key = lambda data:data[1])
 	table = sorted(table, key = lambda data:data[0])
