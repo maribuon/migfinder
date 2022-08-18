@@ -153,7 +153,7 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 			print(type(clean_line))
 			fcm = clean_line.split('\t')
 			print(type(fcm))
-			my_score = fcm[3]
+			my_score = float(fcm[3])
 			print(type(my_score))
 			if float(my_score)>float(k_cm):
 				tag = fcm[5]
