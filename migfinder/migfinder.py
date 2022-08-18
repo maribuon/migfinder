@@ -147,7 +147,9 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	table=[]
 	with open(tmp, 'r') as filein:
 		for line in filein.readlines():
-			fcm = re.sub("\s+", "\t", line.strip()).split('\t')
+			line=line.strip()
+			clean_line=re.sub("\s+", "\t", line)
+			fcm = clean_line.split('\t')
 			my_score = fcm[3]
 			if float(my_score)>float(k_cm):
 				tag = fcm[5]
