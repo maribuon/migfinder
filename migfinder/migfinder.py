@@ -145,7 +145,7 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	# NOTE: because we are filtering HattCI -> Infernal, infernal tag is acc_sta_sto, have to split("_") to extract tags
 	# extracting score	--> cmscore
 	# extracting e-value	--> cmevalue
-	fcm = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
+	fcm = list(csv.reader(open(tmp, 'r'),delimiter='\t'))
 	Mcm = len(fcm)
 	cmtag = []
 	cmscore = []
