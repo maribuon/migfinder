@@ -38,7 +38,8 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	hmmer_results = os.path.join(output_directory, "hmmresults")
 	os.makedirs(hmmer_results, exist_ok=True)
 	
-	prefix=os.path.splitext(fastafile)[0]
+	basename = os.path.basename(fastafile)
+	prefix=os.path.splitext(basename)[0]
 	output_file = f"{hmmer_results}/{prefix}"
 	output_file_tmp = f"{output_file}.tmp"
 	output_file_log = f"{output_file}.hmmlog"
@@ -76,7 +77,7 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	os.unlink(output_file_tmp)
 	# TODO: it is possible that outHattCI.fasta will be written in the base dir
 	shutil.move(f"./outHattCI.fasta", f"{output_file}_hattci.fasta")
-	#os.rename("outHattCI.fasta", f"{output_file}_hattci.fasta")
+
 	
 	return f"{output_file}_hattci.fasta"
 
@@ -92,7 +93,8 @@ def infernal(fastafile, output_directory, cm_model):
 	# creating a dir for infernal results	
 	cmresults_out_dir = os.path.join(output_directory, "cmresults")
 	os.makedirs(cmresults_out_dir, exist_ok=True)
-	prefix=os.path.splitext(fastafile)[0].replace('_hattci','')
+	basename = os.path.basename(fastafile)	
+	prefix=os.path.splitext(basename)[0].replace('_hattci','')
 	output_file = f"{cmresults_out_dir}/{prefix}"
 	output_file_tmp = f"{output_file}.tmp"
 	
@@ -134,7 +136,8 @@ def infernal(fastafile, output_directory, cm_model):
 def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 	remove_attC_wrongstrand = 0
 	cmresults_out_dir = f"{output_directory}/cmresults"
-	prefix=os.path.splitext(fastafile)[0]
+	basename = os.path.basename(fastafile)	
+	prefix=os.path.splitext(basename)[0]	
 	tmp = f"{cmresults_out_dir}/{prefix}.cm"
 	# --------------- CM -------------- #
 	# converting cm into an array
@@ -380,14 +383,18 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 #---------------------------------------------------------------------------#
 # Prodigal call
 # therefore, when results are combined, only one strand can be selected.
+
+prodigal(fastafile=fasta_in, out=output_directory, save_orf=save_orf )
+
 def prodigal(fastafile, output_directory, save_orf):
 	# creating a dir for the prodigal results
 	orfresults_out_dir = f"{output_directory}/orfresults"
-	output_file = os.path.basename(fastafile)
-	output_file_gff = f"{orfresults_out_dir}/{output_file}_orf.gff"
-	
-	os.makedirs(orfresults_out_dir, exist_ok=True)
-	
+	os.makedirs(orfresults_out_dir, exist_ok=True)	
+	basename = os.path.basename(fastafile)	
+	prefix=os.path.splitext(basename)[0].replace('_infernal','')
+	output_file = f"{orfresults_out_dir}/{prefix}"
+	output_file_gff = f"{output_file}.gff"
+
 	params = [
 		"prodigal",
 		"-i",
@@ -403,8 +410,8 @@ def prodigal(fastafile, output_directory, save_orf):
 	]
 	
 	if save_orf:
-		output_file_faa = f"{orfresults_out_dir}/{output_file}_ALLorf.faa"
-		output_file_fna = f"{orfresults_out_dir}/{output_file}_ALLorf.fna"	
+		output_file_faa = f"{output_file}_ALLorf.faa"
+		output_file_fna = f"{output_file}_ALLorf.fna"	
 		additional_param=[
 			"-a",
 			output_file_faa,
@@ -417,25 +424,24 @@ def prodigal(fastafile, output_directory, save_orf):
 	subprocess.run(params)
 
 	# Parsing the gff output file to extract CDS
-	with open(output_file_gff) as gffin, open("tmp.gff",'w') as fileout:
+	output_orf_gff = f"{output_file}_orf.gff"
+	with open(output_file_gff) as gffin, open(output_orf_gff,'w') as gffout:
 		for line in gffin.readlines():
 			if line.split('\t')[2] == 'CDS':
-				fileout.write(line)
+				gffout.write(line)
 				
-	os.rename("tmp.gff", f"{output_file_gff}")
-
 #---------------------------------------------------------------------------#
 
 
 #---------------------------------------------------------------------------#
 # Filtering2: Process CM results into only one table file
-def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
+def posproc2(prefix, output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
 	remove_not_int = 0
 	remove_k = 0
 	remove_overlap = 0
 	remove_overlap_attC = 0
 	# -------------- opening attC predictions ------------------- #
-	tmp = "cmresults/"+out+"_attC.res"
+	tmp = f"{output_directory}/cmresults/{prefix}_attC.res"
 	attc = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
 	MattC = len(attc)
 	data = []
@@ -824,7 +830,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 		# name and ini_pos of ORFs extract info to save fasta later
 		names = []
 		names_attC = []
-		fileout = open(out+".results",'w')
+				
+		out_results=f"{output_directory}/{prefix}.results"
+		fileout = open(out_results,'w')
 		fileout.write("id\telement\tstart\tend\tstrand\tscore\tlen\tdist\tarray_no\tdist_attC\tVscore\tR\'\tsp\'\tL\'\tloop\tL\"\tsp\"\tR\"\n")
 		for m in range(0,M):
 			if 'CDS' in data[m][8]:
@@ -841,8 +849,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 		# --------- Saving significant ORFs (FASTA) ----------- #
 		if len(names) > 0:
 			M = len(data)
-			all_orf = SeqIO.parse(open("orfresults/"+out+"_ALLorf.faa"),'fasta')
-			orf_fasta = "orfresults/"+out+"_orf.faa"
+			orf_in=f"{output_directory}/orfresults/{prefix}_ALLorf.faa"
+			all_orf = SeqIO.parse(open(orf_in),'fasta')
+			orf_fasta=f"{output_directory}/orfresults/{prefix}_orf.faa"
 			with open(orf_fasta, 'w') as f:
 				for seq in all_orf:
 					sta = seq.description.split()[2]
@@ -865,8 +874,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 							foo = SeqIO.write([seq],f,'fasta')
 			f.close()
 			#
-			all_orf_nt = SeqIO.parse(open("orfresults/"+out+"_ALLorf.fna"),'fasta')
-			orf_fasta_nt = "orfresults/"+out+"_orf.fna"
+			orf_inn=f"{output_directory}/orfresults/{prefix}_ALLorf.fna"
+			all_orf_nt = SeqIO.parse(open(orf_inn),'fasta')
+			orf_fasta_nt = f"{output_directory}/orfresults/{prefix}_orf.fna"
 			with open(orf_fasta_nt, 'w') as fnt:
 				for seq in all_orf_nt:
 					sta = seq.description.split()[2]
@@ -889,8 +899,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 							foo = SeqIO.write([seq],fnt,'fasta')
 			fnt.close()
 			#
-			all_attC = SeqIO.parse(open("cmresults/"+out+"_infernal.fasta"),'fasta')
-			attC_fasta = "cmresults/"+out+"_attC.fasta"
+			attc_in=f"{output_directory}/cmresults/{prefix}_infernal.fasta"			
+			all_attC = SeqIO.parse(open(attc_in),'fasta')
+			attC_fasta=f"{output_directory}/cmresults/{prefix}_attC.fasta"	
 			with open(attC_fasta, 'w') as fattC:
 				for seq in all_attC:
 					acc = seq.description.split()[0]
@@ -908,8 +919,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 							seq.seq = aux
 			fattC.close()
 			#
-			all_coord = open("cmresults/"+out+"_attC.res", 'rb')
-			attC_coord = "cmresults/"+out+"_attC.coord"
+			coord_in=f"{output_directory}/cmresults/{prefix}_attC.res"
+			all_coord = open(coord_in, 'rb')
+			attC_coord = f"{output_directory}/cmresults/{prefix}_attC.coord"
 			with open(attC_coord, 'w') as fcoord:
 				for line in all_coord:
 					tmp = line.split()
@@ -930,8 +942,7 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 	# ------------------------------------------------------ #
 	# ---------------------------------------------------- #
 	# Saving info about removed ORFs
-
-		with open(f"{output_dir}/{output_file}.filtering", 'a') as fileout:
+		with open(f"{output_directory}/{prefix}.filtering", 'a') as fileout:
 			writer = csv.writer(fileout, delimiter="\t")
 			writer.writerow(["Del_attC_ol:", str(remove_overlap_attC)])
 			writer.writerow(["Total_orfs:", str(total_orf)])
@@ -947,9 +958,12 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 
 #---------------------------------------------------------------------------#
 def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, save_orf=True, dist_threshold=4000, d_CDS_attC=500):
-	# creating outfile name	
-	file_name = os.path.splitext(fastafile)[1]
-	if file_name not in [".fasta", ".fa", ".fna"]:
+	# creating outfile name
+	basename = os.path.basename(fastafile)	
+	prefix=os.path.splitext(basename)[0]
+	sufix=os.path.splitext(basename)[1]
+	
+	if sufix not in [".fasta", ".fa", ".fna"]:
 		logging.error("Unknown file format, please input a .fasta, .fa or .fna file.")
 		sys.exit(1)
 	
@@ -971,10 +985,12 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 
 	logging.info("Post proc done!")
 
-	if os.path.exists("cmresults/" + out + "_attC.res"):
-		prodigal(fastafile="../cmresults/" + out + "_infernal.fasta", out=out, save_orf=save_orf )
+	cmresults_out_file = f"{output_directory}/cmresults/{prefix}_attC.res"
+	if os.path.exists(cmresults_out_file):
+		fasta_in=f"{output_directory}/cmresults/{prefix}_infernal.fasta"
+		prodigal(fasta_in, output_directory, save_orf)
 		logging.info("Prodigal done! Starting pos-processing...")
-		posproc2(output_directory, k_orf)
+		posproc2(prefix, output_directory, k_orf)
 		logging.info("Pos-processing done!")
 	else:
 		logging.info("No attC found, skipping Prodigal step...")
