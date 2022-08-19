@@ -533,6 +533,8 @@ def posproc2(prefix, output_directory, k_orf, d_CDS_attC = 500, dist_threshold=4
 		# remove always the CDS.
 		m = 0
 		while m < M:
+			print(data[m][7])
+			print(type(data[m][7))
 			if int(data[m][7]) < int(-50):
 				if data[m][1] == "CDS":
 					del data[m]
