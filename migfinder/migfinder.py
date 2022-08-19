@@ -420,7 +420,7 @@ def prodigal(fastafile, output_directory, save_orf):
 
 #---------------------------------------------------------------------------#
 # Filtering2: Process CM results into only one table file
-def posproc2(prefix, output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
+def posproc2(prefix, output_directory, k_orf, d_CDS_attC = 500, dist_threshold=4000):
 	remove_not_int = 0
 	remove_k = 0
 	remove_overlap = 0
@@ -498,7 +498,7 @@ def posproc2(prefix, output_directory, k_orf = 0, d_CDS_attC = 500, dist_thresho
 		Morf = len(orf)
 		# adding the orf to the data matrix
 		for m in range(0,Morf):
-			if float(orf[m][5]) > k_orf:
+			if float(orf[m][5]) > float(k_orf):
 				data.append([orf[m][0], orf[m][2], int(orf[m][3]), orf[m][4], orf[m][6], orf[m][5], int(orf[m][4])-int(orf[m][3])+1, orf[m][8] ])
 			else:
 				Morf = Morf - 1
@@ -975,7 +975,7 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 		fasta_in=f"{output_directory}/cmresults/{prefix}_infernal.fasta"
 		prodigal(fasta_in, output_directory, save_orf)
 		logging.info("Prodigal done! Starting pos-processing...")
-		posproc2(prefix, output_directory, k_orf)
+		posproc2(prefix, output_directory, k_orf=0)
 		logging.info("Pos-processing done!")
 	else:
 		logging.info("No attC found, skipping Prodigal step...")
