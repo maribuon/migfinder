@@ -393,7 +393,7 @@ def prodigal(fastafile, output_directory, save_orf):
 		"-c"
 	]
 	
-	if save_orf:
+	if save_orf==True:
 		output_file_faa = f"{output_file}_ALLorf.faa"
 		output_file_fna = f"{output_file}_ALLorf.fna"	
 		additional_param=[
