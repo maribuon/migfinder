@@ -384,7 +384,7 @@ def prodigal(fastafile, output_directory):
 		"-a",
 		output_file_faa,
 		"-d",
-		output_file_fna
+		output_file_fna,
 		"-i",
 		fastafile,
 		"-p",
