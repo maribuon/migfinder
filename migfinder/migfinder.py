@@ -411,8 +411,9 @@ def prodigal(fastafile, output_directory, save_orf):
 	output_orf_gff = f"{output_file}_orf.gff"
 	with open(output_file_gff) as gffin, open(output_orf_gff,'w') as gffout:
 		for line in gffin.readlines():
-			if line.split('\t')[2] == 'CDS':
-				gffout.write(line)
+			if line.startswith('#'):
+				if line.split('\t')[2] == 'CDS':
+					gffout.write(line)
 				
 #---------------------------------------------------------------------------#
 
