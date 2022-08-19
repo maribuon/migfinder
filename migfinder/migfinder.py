@@ -20,6 +20,7 @@ import csv
 import sys
 import argparse
 import subprocess
+import shutil
 
 try:
     from importlib.resources import files
@@ -37,10 +38,12 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	hmmer_results = os.path.join(output_directory, "hmmresults")
 	os.makedirs(hmmer_results, exist_ok=True)
 	
-	# os.chdir("hmmresults")
-	output_file = f"{hmmer_results}/{os.path.basename(fastafile)}"
+	basename = os.path.basename(fastafile)
+	prefix=os.path.splitext(basename)[0]
+	output_file = f"{hmmer_results}/{prefix}"
 	output_file_tmp = f"{output_file}.tmp"
-
+	output_file_log = f"{output_file}.hmmlog"
+	
 	# calling hattci, both strands or not?
 	params = [
 		"hattci.out",
@@ -49,18 +52,18 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 		"-t",
 		str(nthread),
 		fastafile,
-		output_file_tmp,
+		output_file_tmp
 	]
-	# guardar el stdout en un hmmlog
 	if both:
-		params.insert("-b", 0)
+		params.insert(1, "-b")
 	
-	subprocess.run(params)
+	out_f=open(output_file_log, "w")
+	subprocess.run(params, stdout=out_f)
 
 	#--------------#
 	# parsing file
 	#--------------#
-	with open(output_file_tmp, "r") as file_in, open(out + ".hmm", "w") as file_out:
+	with open(output_file_tmp, "r") as file_in, open(output_file + ".hmm", "w") as file_out:
 		# extracting only table from the results
 		for line in file_in.readlines():
 			# removing first line with column names
@@ -73,7 +76,7 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 				file_out.write(line)
 	os.unlink(output_file_tmp)
 	# TODO: it is possible that outHattCI.fasta will be written in the base dir
-	os.rename(f"{hmmer_results}/outHattCI.fasta", f"{output_file}_hattci.fasta")
+	shutil.move(f"./outHattCI.fasta", f"{output_file}_hattci.fasta")
 	
 	return f"{output_file}_hattci.fasta"
 
@@ -86,12 +89,14 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 # HattCI picks the best
 # therefore, when results are combined, only one strand can be selected.
 def infernal(fastafile, output_directory, cm_model):
-	# creating a dir for the hmm results
-	cmresults_out_dir = f"{output_directory}/cmresults"
-	output_file = os.path.basename(fastafile)
-	output_file_tmp = f"{cmresults_out_dir}/{output_file}.tmp"
-
+	# creating a dir for infernal results	
+	cmresults_out_dir = os.path.join(output_directory, "cmresults")
 	os.makedirs(cmresults_out_dir, exist_ok=True)
+	basename = os.path.basename(fastafile)	
+	prefix=os.path.splitext(basename)[0].replace('_hattci','')
+	output_file = f"{cmresults_out_dir}/{prefix}"
+	output_file_tmp = f"{output_file}.tmp"
+	
 	params = [
 		"cmsearch",
 		"--max",
@@ -106,7 +111,10 @@ def infernal(fastafile, output_directory, cm_model):
 	#--------------#
 	# parsing file
 	#--------------#
-	with open(output_file_tmp) as filein, open(output_file + ".cm",'w') as fileout, open(output_file + ".cmlog",'w') as filelog:
+	output_file_parse = f"{output_file}.cm"
+	output_file_parse_log = f"{output_file}.cmlog"
+	#with open(output_file_tmp) as filein, open(output_file + ".cm",'w') as fileout, open(output_file + ".cmlog",'w') as filelog:
+	with open(output_file_tmp) as filein, open(output_file_parse, 'w') as fileout, open(output_file_parse_log,'w') as filelog:
 		# extracting only table from the results
 		for line in filein.readlines():
 			# creating cmlog
@@ -118,65 +126,57 @@ def infernal(fastafile, output_directory, cm_model):
 			elif "Hit alignments" in line:
 				break
 	os.unlink(output_file_tmp)
+
 #---------------------------------------------------------------------------#
 
 #---------------------------------------------------------------------------#
 # Filtering: Process CM results into only one table file
-def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
+def posproc(fastafile, output_directory, k_cm, dist_threshold=4000):
 	remove_attC_wrongstrand = 0
+	cmresults_out_dir = f"{output_directory}/cmresults"
+	basename = os.path.basename(fastafile)	
+	prefix=os.path.splitext(basename)[0]	
+	tmp = f"{cmresults_out_dir}/{prefix}.cm"
 	# --------------- CM -------------- #
 	# converting cm into an array
 	# extracting tags: acc number + sta + sto
 	# NOTE: because we are filtering HattCI -> Infernal, infernal tag is acc_sta_sto, have to split("_") to extract tags
 	# extracting score	--> cmscore
-	# extracting e-value	--> cmevalue
-	tmp = "cmresults/"+out+".cm"
-	fcm = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
-	Mcm = len(fcm)
-	cmtag = []
-	cmscore = []
-	cmevalue = []
-	sta = []
-	sto = []
-	names = []
-	fhmm = []		# Viterbi score from hmm (Vscore)
-	table = []
-	strand = []
-	tag = []
-	m = 0
-	while m < Mcm:
-		fcm[m] = fcm[m][0].split()
-		# removing hits with score lower than threshold k_cm
-		# since CM results are sorted, breaking is sufficient to remove all <k_cm	
-		if float(fcm[m][3]) < k_cm:
-			break			
-		# remove end
-		else:
-			tag.append(fcm[m][5])
-			aux = fcm[m][5].split("_")
-			names.append("_".join(aux[0:len(aux)-2]))
-			cmtag.append(names[m]+"_"+aux[len(aux)-2]+'_'+aux[len(aux)-1])
-			aux_sta = int(aux[-2])
-			aux_sto = int(aux[-1])
-			cmscore.append(fcm[m][3])
-			cmevalue.append(fcm[m][2])
-		# The section below will use coordinates from HattCI, which is desirable to maintain R'' and R' sites.
-			if aux_sta <= aux_sto:
-				sta.append(aux_sta)
-				sto.append(aux_sto)
-				strand.append("+")
-			else:
-				sto.append(aux_sta)
-				sta.append(aux_sto)
-				strand.append("-")
-			last = fcm[m][len(fcm[m])-1]
-			if last == 'REVERSED':
-				fhmm.append(fcm[m][len(fcm[m])-2])
-			else:
-				fhmm.append(fcm[m][len(fcm[m])-1])
-			# saving table
-			table.append([names[m],int(sta[m]),sto[m], strand[m],fhmm[m],cmscore[m],cmevalue[m]])		
-		m = m + 1
+	# extracting e-value	--> cmevalue	
+	table=[]
+	with open(tmp, 'r') as filein:
+		for line in filein.readlines():
+			line=line.strip()
+			clean_line=re.sub("\s+", "\t", line)
+			fcm = clean_line.split('\t')
+			my_score = float(fcm[3])
+			if my_score > float(k_cm):
+				tag = fcm[5]
+				aux = fcm[5].split("_")
+				name = "_".join(aux[0:-2])
+				coor = aux[-2]+'_'+aux[-1]
+				cmtag = name+'_'+coor
+				aux_sta = int(aux[-2])
+				aux_sto = int(aux[-1])
+				cmscore = fcm[3]
+				cmevalue = fcm[2]
+				# The section below will use coordinates from HattCI, which is desirable to maintain R'' and R' sites.
+				if aux_sta <= aux_sto:
+					sta = aux_sta
+					sto = aux_sto
+					strand = "+"
+				else:
+					sto = aux_sta
+					sta = aux_sto
+					strand = "-"
+				last = fcm[-1]
+				if last == 'REVERSED':  # Viterbi score from hmm (Vscore)
+					fhmm = fcm[-2]
+				else:
+ 					fhmm = fcm[-1]
+				# saving table
+				table.append([name,sta,sto,strand,fhmm,cmscore,cmevalue])
+		
 	# ----------------- sorting ----------------------- #
 	table = sorted(table, key = lambda data:data[1])
 	table = sorted(table, key = lambda data:data[0])
@@ -312,18 +312,22 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 		table = []
 	#
 	logging.info(f"attC hits from pipeline: {len(table)}")
-	with open(out+".filtering",'w') as fileout:
+	
+	output_file = f"{cmresults_out_dir}/{prefix}"
+	output_file_filt = f"{output_file}.filtering"	
+	with open(output_file_filt,'w') as fileout:
 		fileout.write("Total_attC:	" + str(len(table)) + '\n')
 		fileout.write("Del_attC_ws:	" + str(remove_attC_wrongstrand) + '\n')
 	# ----------- Saving results table -------------- #
 	Mcm = len(table)
 	if table:
 		# selecting coordinates for the table from hmmresults to cmresults
-		tmp = "hmmresults/" + out + ".hmm"
-		fhmm = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
+		tmp = f"{output_directory}/hmmresults/{prefix}.hmm"
+		fhmm = list(csv.reader(open(tmp, 'r'),delimiter='\t'))
 		Mhmm = len(fhmm)
 		# opening file to save
-		fileout = open("cmresults/"+out+"_attC.res",'w')
+		output_file_res=f"{output_file}_attC.res"
+		fileout = open(output_file_res, 'w')
 		names_sel = []
 		for m in range(0,Mcm):
 			names_sel.append(table[m][0])
@@ -352,7 +356,7 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 		names_sel = set(names_sel)
 		names_sel = sorted(names_sel)
 		all_sequences = SeqIO.parse(open(fastafile), "fasta")
-		hits_sequences = "cmresults/"+out+"_infernal.fasta"
+		hits_sequences=f"{output_file}_infernal.fasta"
 		with open(hits_sequences, "w") as f:
 			for seq in all_sequences:
 				if seq.id in names_sel:
@@ -365,16 +369,22 @@ def posproc(fastafile, output_directory, k_cm=20, dist_threshold=4000):
 #---------------------------------------------------------------------------#
 # Prodigal call
 # therefore, when results are combined, only one strand can be selected.
-def prodigal(fastafile, output_directory, save_orf):
+def prodigal(fastafile, output_directory):
 	# creating a dir for the prodigal results
 	orfresults_out_dir = f"{output_directory}/orfresults"
-	output_file = os.path.basename(fastafile)
-	output_file_gff = f"{orfresults_out_dir}/{output_file}_orf.gff"
-	
-	os.makedirs(orfresults_out_dir, exist_ok=True)
-	
+	os.makedirs(orfresults_out_dir, exist_ok=True)	
+	basename = os.path.basename(fastafile)	
+	prefix=os.path.splitext(basename)[0].replace('_infernal','')
+	output_file = f"{orfresults_out_dir}/{prefix}"
+	output_file_gff = f"{prefix}.gff"
+	output_file_faa = f"{prefix}_ALLorf.faa"
+	output_file_fna = f"{prefix}_ALLorf.fna"
 	params = [
 		"prodigal",
+		"-a",
+		output_file_faa,
+		"-d",
+		output_file_fna,
 		"-i",
 		fastafile,
 		"-p",
@@ -386,42 +396,34 @@ def prodigal(fastafile, output_directory, save_orf):
 		"-q",
 		"-c"
 	]
-	
-	if save_orf:
-		output_file_faa = f"{orfresults_out_dir}/{output_file}_ALLorf.faa"
-		output_file_fna = f"{orfresults_out_dir}/{output_file}_ALLorf.fna"	
-		additional_param=[
-			"-a",
-			output_file_faa,
-			"-d",
-			output_file_fna
-		]
-		params=params+additional_param
-
 	# calling prodigal
 	subprocess.run(params)
 
-	# Parsing the gff output file to extract CDS
-	with open(output_file_gff) as gffin, open("tmp.gff",'w') as fileout:
+	# Parsing the gff output file to extract CDS	
+	output_orf_gff = f"{output_file}_orf.gff"
+	with open(output_file_gff) as gffin, open(output_orf_gff,'w') as gffout:
 		for line in gffin.readlines():
-			if line.split('\t')[2] == 'CDS':
-				fileout.write(line)
-				
-	os.rename("tmp.gff", f"{output_file_gff}")
+			if not line.startswith('#'):
+				if line.split('\t')[2] == 'CDS':
+					gffout.write(line)
 
+	shutil.move(f"{output_file_faa}", f"{orfresults_out_dir}")
+	shutil.move(f"{output_file_fna}", f"{orfresults_out_dir}")
+	shutil.move(f"{output_file_gff}", f"{orfresults_out_dir}")
+			
 #---------------------------------------------------------------------------#
 
 
 #---------------------------------------------------------------------------#
 # Filtering2: Process CM results into only one table file
-def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000):
+def posproc2(prefix, output_directory, k_orf, d_CDS_attC = 500, dist_threshold=4000):
 	remove_not_int = 0
 	remove_k = 0
 	remove_overlap = 0
 	remove_overlap_attC = 0
 	# -------------- opening attC predictions ------------------- #
-	tmp = "cmresults/"+out+"_attC.res"
-	attc = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
+	tmp = f"{output_directory}/cmresults/{prefix}_attC.res"
+	attc = list(csv.reader(open(tmp, 'r'),delimiter='\t'))
 	MattC = len(attc)
 	data = []
 	# editing the attC_result matrix
@@ -486,13 +488,13 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 	# ---------------------------------------------------------- #
 	if MattC > 1:
 	# -------------- opening ORF predictions ------------------- #
-		tmp = f"{orfresults_out_dir}/{output_file}_orf.gff"
-		orf = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
+		tmp = f"{output_directory}/orfresults/{prefix}_orf.gff"
+		orf = list(csv.reader(open(tmp, 'r'),delimiter='\t'))
 		total_orf = len(orf)
 		Morf = len(orf)
 		# adding the orf to the data matrix
 		for m in range(0,Morf):
-			if float(orf[m][5]) > k_orf:
+			if float(orf[m][5]) > float(k_orf):
 				data.append([orf[m][0], orf[m][2], int(orf[m][3]), orf[m][4], orf[m][6], orf[m][5], int(orf[m][4])-int(orf[m][3])+1, orf[m][8] ])
 			else:
 				Morf = Morf - 1
@@ -527,50 +529,53 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 		# remove always the CDS.
 		m = 0
 		while m < M:
-			if data[m][7] < -50:
-				if data[m][1] == "CDS":
-					del data[m]
-					remove_overlap += 1
-					#m -= 1
-					# correcting distances, note now m is updated for a
-					if m > 0 and m < len(data) and data[m][0] == data[m-1][0]:
-						data[m][7] = data[m][2] - int(data[m-1][3])
-					elif m < len(data):
-						data[m][7] = "ini0"
-					m = m - 1
-				elif data[m][1] == "attC_site":
-					if data[m-1][1] == "CDS":
-						del data[m-1]
+			if data[m][7] != 'ini0':
+				if data[m][7] < -50:
+					if data[m][1] == "CDS":
+						del data[m]
 						remove_overlap += 1
-						# m has to be adjusted before, so that dist can be recalculated
-						m = m - 1
+						#m -= 1
 						# correcting distances, note now m is updated for a
-						if data[m][0] == data[m-1][0]:
+						if m > 0 and m < len(data) and data[m][0] == data[m-1][0]:
 							data[m][7] = data[m][2] - int(data[m-1][3])
-						else:
+						elif m < len(data):
 							data[m][7] = "ini0"
-					elif data[m-1][1] == "attC_site":
-						if float(data[m][5]) >= float(data[m-1][5]):
+						m = m - 1
+					elif data[m][1] == "attC_site":
+						if data[m-1][1] == "CDS":
 							del data[m-1]
-							remove_overlap_attC += 1
-							# m has to be adjusted before, so that dist can be rcalculated
+							remove_overlap += 1
+							# m has to be adjusted before, so that dist can be recalculated
 							m = m - 1
 							# correcting distances, note now m is updated for a
 							if data[m][0] == data[m-1][0]:
 								data[m][7] = data[m][2] - int(data[m-1][3])
 							else:
 								data[m][7] = "ini0"
-						else:
-							del data[m]
-							remove_overlap_attC += 1
-							# correcting distances, note now m is updated due to deletion
-							if m < M - 1:	# if m is the last one no need to correct distances
+						elif data[m-1][1] == "attC_site":
+							if float(data[m][5]) >= float(data[m-1][5]):
+								del data[m-1]
+								remove_overlap_attC += 1
+								# m has to be adjusted before, so that dist can be rcalculated
+								m = m - 1
+								# correcting distances, note now m is updated for a
 								if data[m][0] == data[m-1][0]:
 									data[m][7] = data[m][2] - int(data[m-1][3])
 								else:
 									data[m][7] = "ini0"
-							m = m - 1
-			else:			
+							else:
+								del data[m]
+								remove_overlap_attC += 1
+								# correcting distances, note now m is updated due to deletion
+								if m < M - 1:	# if m is the last one no need to correct distances
+									if data[m][0] == data[m-1][0]:
+										data[m][7] = data[m][2] - int(data[m-1][3])
+									else:
+										data[m][7] = "ini0"
+								m = m - 1
+				else:			
+					m = m  + 1
+			else:
 				m = m  + 1
 			M = len(data)
 		# ---- Remove CDSs that are before and beyond attC ---- #
@@ -809,7 +814,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 		# name and ini_pos of ORFs extract info to save fasta later
 		names = []
 		names_attC = []
-		fileout = open(out+".results",'w')
+				
+		out_results=f"{output_directory}/{prefix}.results"
+		fileout = open(out_results,'w')
 		fileout.write("id\telement\tstart\tend\tstrand\tscore\tlen\tdist\tarray_no\tdist_attC\tVscore\tR\'\tsp\'\tL\'\tloop\tL\"\tsp\"\tR\"\n")
 		for m in range(0,M):
 			if 'CDS' in data[m][8]:
@@ -826,8 +833,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 		# --------- Saving significant ORFs (FASTA) ----------- #
 		if len(names) > 0:
 			M = len(data)
-			all_orf = SeqIO.parse(open("orfresults/"+out+"_ALLorf.faa"),'fasta')
-			orf_fasta = "orfresults/"+out+"_orf.faa"
+			orf_in=f"{output_directory}/orfresults/{prefix}_ALLorf.faa"
+			all_orf = SeqIO.parse(open(orf_in),'fasta')
+			orf_fasta=f"{output_directory}/orfresults/{prefix}_orf.faa"
 			with open(orf_fasta, 'w') as f:
 				for seq in all_orf:
 					sta = seq.description.split()[2]
@@ -850,8 +858,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 							foo = SeqIO.write([seq],f,'fasta')
 			f.close()
 			#
-			all_orf_nt = SeqIO.parse(open("orfresults/"+out+"_ALLorf.fna"),'fasta')
-			orf_fasta_nt = "orfresults/"+out+"_orf.fna"
+			orf_inn=f"{output_directory}/orfresults/{prefix}_ALLorf.fna"
+			all_orf_nt = SeqIO.parse(open(orf_inn),'fasta')
+			orf_fasta_nt = f"{output_directory}/orfresults/{prefix}_orf.fna"
 			with open(orf_fasta_nt, 'w') as fnt:
 				for seq in all_orf_nt:
 					sta = seq.description.split()[2]
@@ -874,8 +883,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 							foo = SeqIO.write([seq],fnt,'fasta')
 			fnt.close()
 			#
-			all_attC = SeqIO.parse(open("cmresults/"+out+"_infernal.fasta"),'fasta')
-			attC_fasta = "cmresults/"+out+"_attC.fasta"
+			attc_in=f"{output_directory}/cmresults/{prefix}_infernal.fasta"			
+			all_attC = SeqIO.parse(open(attc_in),'fasta')
+			attC_fasta=f"{output_directory}/cmresults/{prefix}_attC.fasta"	
 			with open(attC_fasta, 'w') as fattC:
 				for seq in all_attC:
 					acc = seq.description.split()[0]
@@ -893,8 +903,9 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 							seq.seq = aux
 			fattC.close()
 			#
-			all_coord = open("cmresults/"+out+"_attC.res", 'rb')
-			attC_coord = "cmresults/"+out+"_attC.coord"
+			coord_in=f"{output_directory}/cmresults/{prefix}_attC.res"
+			all_coord = open(coord_in, 'r')
+			attC_coord = f"{output_directory}/cmresults/{prefix}_attC.coord"
 			with open(attC_coord, 'w') as fcoord:
 				for line in all_coord:
 					tmp = line.split()
@@ -909,14 +920,13 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 							break
 			fcoord.close()
 
-			os.unlink(output_file_faa)
-			os.unlink(output_file_fna)
+			#os.unlink(output_file_faa)
+			#os.unlink(output_file_fna)
 
 	# ------------------------------------------------------ #
 	# ---------------------------------------------------- #
 	# Saving info about removed ORFs
-
-		with open(f"{output_dir}/{output_file}.filtering", 'a') as fileout:
+		with open(f"{output_directory}/{prefix}.filtering", 'a') as fileout:
 			writer = csv.writer(fileout, delimiter="\t")
 			writer.writerow(["Del_attC_ol:", str(remove_overlap_attC)])
 			writer.writerow(["Total_orfs:", str(total_orf)])
@@ -931,10 +941,13 @@ def posproc2(output_directory, k_orf = 0, d_CDS_attC = 500, dist_threshold=4000)
 
 
 #---------------------------------------------------------------------------#
-def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, save_orf=True, dist_threshold=4000, d_CDS_attC=500):
+def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, dist_threshold=4000, d_CDS_attC=500):
 	# creating outfile name
-	file_name = os.path.basename(fastafile)
-	if file_name not in [".fasta", ".fa", ".fna"]:
+	basename = os.path.basename(fastafile)	
+	prefix=os.path.splitext(basename)[0]
+	sufix=os.path.splitext(basename)[1]
+	
+	if sufix not in [".fasta", ".fa", ".fna"]:
 		logging.error("Unknown file format, please input a .fasta, .fa or .fna file.")
 		sys.exit(1)
 	
@@ -952,14 +965,16 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 
 	logging.info("Infernal done!")
 
-	posproc(fastafile, output_directory, k_cm)
+	posproc(fastafile, output_directory, k_cm=20)
 
 	logging.info("Post proc done!")
 
-	if os.path.exists("cmresults/" + out + "_attC.res"):
-		prodigal(fastafile="../cmresults/" + out + "_infernal.fasta", out=out, save_orf=save_orf )
+	cmresults_out_file = f"{output_directory}/cmresults/{prefix}_attC.res"
+	if os.path.exists(cmresults_out_file):
+		fasta_in=f"{output_directory}/cmresults/{prefix}_infernal.fasta"
+		prodigal(fasta_in, output_directory)
 		logging.info("Prodigal done! Starting pos-processing...")
-		posproc2(output_directory, k_orf)
+		posproc2(prefix, output_directory, k_orf=0)
 		logging.info("Pos-processing done!")
 	else:
 		logging.info("No attC found, skipping Prodigal step...")
@@ -967,21 +982,20 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 
 def migfinder_cli():
 	parser = argparse.ArgumentParser(description="Metagenomic Integron-associated Gene finder")
-	parser.add_argument("-f", "--fasta", required=True, help="Input fasta file")
+	parser.add_argument("-f", "--fasta", required=True, help="Input fasta file. Valid extensions are .fasta, .fna, and .fa")
 	parser.add_argument("-o", "--output", required=True, help="Output directory")	
 	parser.add_argument("-c", "--cmmodel", required=False, help="Covariance model used by Infernal to validate the attC site secondary structure [default=None]")
 	parser.add_argument("-b", "--strand", required=False, help="Perform HattCI in both strands [default=True]")
-	parser.add_argument("-n", "--seqs", required=False, help="Number of sequences processed at a time by HattCI [deafult=1000]")
+	parser.add_argument("-n", "--seqs", required=False, help="Number of sequences processed at a time by HattCI [default=1000]")
 	parser.add_argument("-t", "--threads", required=False, help="Number of threads to run HattCI, [default=6]")	
 	parser.add_argument("-e", "--score", required=False, help="Threshold used to filter Infernal results [default=20]")
 	parser.add_argument("-r", "--orf", required=False, help="Threshold used to filter HattCI results [default=0]")
-	parser.add_argument("-s", "--save", required=False, help="Save ORF results in a separate fasta file [default=True]")
 	parser.add_argument("-a", "--adist", required=False, help="Max distance allowed to consider two adjacent attC sites part of the same integron [default=4000]")	
 	parser.add_argument("-d", "--odist", required=False, help="Max distance allowed between ORF and attC site in the same gene cassette [default=500]")
 	
 	args = parser.parse_args()
 
-	return main(args.fasta, args.output, args.cmmodel, args.strand , args.seqs , args.threads , args.score , args.orf , args.save , args.adist , args.odist)
+	return main(args.fasta, args.output, args.cmmodel, args.strand , args.seqs , args.threads , args.score , args.orf , args.adist , args.odist)
 
 
 if __name__ == "__main__":
