@@ -920,8 +920,8 @@ def posproc2(prefix, output_directory, k_orf, d_CDS_attC = 500, dist_threshold=4
 							break
 			fcoord.close()
 
-			os.unlink(output_file_faa)
-			os.unlink(output_file_fna)
+			#os.unlink(output_file_faa)
+			#os.unlink(output_file_fna)
 
 	# ------------------------------------------------------ #
 	# ---------------------------------------------------- #
