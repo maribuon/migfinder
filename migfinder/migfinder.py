@@ -493,7 +493,7 @@ def posproc2(prefix, output_directory, k_orf = 0, d_CDS_attC = 500, dist_thresho
 	if MattC > 1:
 	# -------------- opening ORF predictions ------------------- #
 		tmp = f"{output_directory}/orfresults/{prefix}_orf.gff"
-		orf = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
+		orf = list(csv.reader(open(tmp, 'r'),delimiter='\t'))
 		total_orf = len(orf)
 		Morf = len(orf)
 		# adding the orf to the data matrix
