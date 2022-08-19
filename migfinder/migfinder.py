@@ -313,7 +313,7 @@ def posproc(fastafile, output_directory, k_cm, dist_threshold=4000):
 	#
 	logging.info(f"attC hits from pipeline: {len(table)}")
 	
-	#output_file = f"{cmresults_out_dir}/{prefix}"
+	output_file = f"{cmresults_out_dir}/{prefix}"
 	output_file_filt = f"{output_directory}/{prefix}.filtering"	
 	with open(output_file_filt,'w') as fileout:
 		fileout.write("Total_attC:	" + str(len(table)) + '\n')
