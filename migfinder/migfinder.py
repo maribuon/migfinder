@@ -533,51 +533,53 @@ def posproc2(prefix, output_directory, k_orf, d_CDS_attC = 500, dist_threshold=4
 		# remove always the CDS.
 		m = 0
 		while m < M:
-			if all([ data[m][7] != 'ini0', data[m][7] < -50]):
-			#if data[m][7] < -50:
-				if data[m][1] == "CDS":
-					del data[m]
-					remove_overlap += 1
-					#m -= 1
-					# correcting distances, note now m is updated for a
-					if m > 0 and m < len(data) and data[m][0] == data[m-1][0]:
-						data[m][7] = data[m][2] - int(data[m-1][3])
-					elif m < len(data):
-						data[m][7] = "ini0"
-					m = m - 1
-				elif data[m][1] == "attC_site":
-					if data[m-1][1] == "CDS":
-						del data[m-1]
+			if data[m][7] != 'ini0':
+				if data[m][7] < -50:
+					if data[m][1] == "CDS":
+						del data[m]
 						remove_overlap += 1
-						# m has to be adjusted before, so that dist can be recalculated
-						m = m - 1
+						#m -= 1
 						# correcting distances, note now m is updated for a
-						if data[m][0] == data[m-1][0]:
+						if m > 0 and m < len(data) and data[m][0] == data[m-1][0]:
 							data[m][7] = data[m][2] - int(data[m-1][3])
-						else:
+						elif m < len(data):
 							data[m][7] = "ini0"
-					elif data[m-1][1] == "attC_site":
-						if float(data[m][5]) >= float(data[m-1][5]):
+						m = m - 1
+					elif data[m][1] == "attC_site":
+						if data[m-1][1] == "CDS":
 							del data[m-1]
-							remove_overlap_attC += 1
-							# m has to be adjusted before, so that dist can be rcalculated
+							remove_overlap += 1
+							# m has to be adjusted before, so that dist can be recalculated
 							m = m - 1
 							# correcting distances, note now m is updated for a
 							if data[m][0] == data[m-1][0]:
 								data[m][7] = data[m][2] - int(data[m-1][3])
 							else:
 								data[m][7] = "ini0"
-						else:
-							del data[m]
-							remove_overlap_attC += 1
-							# correcting distances, note now m is updated due to deletion
-							if m < M - 1:	# if m is the last one no need to correct distances
+						elif data[m-1][1] == "attC_site":
+							if float(data[m][5]) >= float(data[m-1][5]):
+								del data[m-1]
+								remove_overlap_attC += 1
+								# m has to be adjusted before, so that dist can be rcalculated
+								m = m - 1
+								# correcting distances, note now m is updated for a
 								if data[m][0] == data[m-1][0]:
 									data[m][7] = data[m][2] - int(data[m-1][3])
 								else:
 									data[m][7] = "ini0"
-							m = m - 1
-			else:			
+							else:
+								del data[m]
+								remove_overlap_attC += 1
+								# correcting distances, note now m is updated due to deletion
+								if m < M - 1:	# if m is the last one no need to correct distances
+									if data[m][0] == data[m-1][0]:
+										data[m][7] = data[m][2] - int(data[m-1][3])
+									else:
+										data[m][7] = "ini0"
+								m = m - 1
+				else:			
+					m = m  + 1
+			else:
 				m = m  + 1
 			M = len(data)
 		# ---- Remove CDSs that are before and beyond attC ---- #
