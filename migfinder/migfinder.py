@@ -77,7 +77,6 @@ def hattci(fastafile, output_directory, both=True, nseq=1000, nthread=6):
 	os.unlink(output_file_tmp)
 	# TODO: it is possible that outHattCI.fasta will be written in the base dir
 	shutil.move(f"./outHattCI.fasta", f"{output_file}_hattci.fasta")
-
 	
 	return f"{output_file}_hattci.fasta"
 
@@ -377,12 +376,15 @@ def prodigal(fastafile, output_directory):
 	basename = os.path.basename(fastafile)	
 	prefix=os.path.splitext(basename)[0].replace('_infernal','')
 	output_file = f"{orfresults_out_dir}/{prefix}"
-	output_file_gff = f"{output_file}.gff"
-	output_file_faa = f"{output_file}_ALLorf.faa"
-	output_file_fna = f"{output_file}_ALLorf.fna"
-
+	output_file_gff = f"{prefix}.gff"
+	output_file_faa = f"{prefix}_ALLorf.faa"
+	output_file_fna = f"{prefix}_ALLorf.fna"
 	params = [
 		"prodigal",
+		"-a",
+		output_file_faa,
+		"-d",
+		output_file_fna
 		"-i",
 		fastafile,
 		"-p",
@@ -393,22 +395,22 @@ def prodigal(fastafile, output_directory):
 		"gff",
 		"-q",
 		"-c"
-		"-a",
-		output_file_faa,
-		"-d",
-		output_file_fna
 	]
 	# calling prodigal
 	subprocess.run(params)
 
-	# Parsing the gff output file to extract CDS
+	# Parsing the gff output file to extract CDS	
 	output_orf_gff = f"{output_file}_orf.gff"
 	with open(output_file_gff) as gffin, open(output_orf_gff,'w') as gffout:
 		for line in gffin.readlines():
 			if not line.startswith('#'):
 				if line.split('\t')[2] == 'CDS':
 					gffout.write(line)
-				
+
+	shutil.move(f"{output_file_faa}", f"{orfresults_out_dir}")
+	shutil.move(f"{output_file_fna}", f"{orfresults_out_dir}")
+	shutil.move(f"{output_file_gff}", f"{orfresults_out_dir}")
+			
 #---------------------------------------------------------------------------#
 
 
