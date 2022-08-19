@@ -370,7 +370,7 @@ def posproc(fastafile, output_directory, k_cm, dist_threshold=4000):
 #---------------------------------------------------------------------------#
 # Prodigal call
 # therefore, when results are combined, only one strand can be selected.
-def prodigal(fastafile, output_directory, save_orf):
+def prodigal(fastafile, output_directory):
 	# creating a dir for the prodigal results
 	orfresults_out_dir = f"{output_directory}/orfresults"
 	os.makedirs(orfresults_out_dir, exist_ok=True)	
@@ -378,6 +378,8 @@ def prodigal(fastafile, output_directory, save_orf):
 	prefix=os.path.splitext(basename)[0].replace('_infernal','')
 	output_file = f"{orfresults_out_dir}/{prefix}"
 	output_file_gff = f"{output_file}.gff"
+	output_file_faa = f"{output_file}_ALLorf.faa"
+	output_file_fna = f"{output_file}_ALLorf.fna"
 
 	params = [
 		"prodigal",
@@ -391,19 +393,11 @@ def prodigal(fastafile, output_directory, save_orf):
 		"gff",
 		"-q",
 		"-c"
+		"-a",
+		output_file_faa,
+		"-d",
+		output_file_fna
 	]
-	
-	if save_orf==True:
-		output_file_faa = f"{output_file}_ALLorf.faa"
-		output_file_fna = f"{output_file}_ALLorf.fna"	
-		additional_param=[
-			"-a",
-			output_file_faa,
-			"-d",
-			output_file_fna
-		]
-		params=params+additional_param
-
 	# calling prodigal
 	subprocess.run(params)
 
@@ -945,7 +939,7 @@ def posproc2(prefix, output_directory, k_orf, d_CDS_attC = 500, dist_threshold=4
 
 
 #---------------------------------------------------------------------------#
-def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, save_orf=True, dist_threshold=4000, d_CDS_attC=500):
+def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthread=6, k_cm=20, k_orf=0, dist_threshold=4000, d_CDS_attC=500):
 	# creating outfile name
 	basename = os.path.basename(fastafile)	
 	prefix=os.path.splitext(basename)[0]
@@ -976,7 +970,7 @@ def main(fastafile, output_directory, cm_model=None, both=True, nseq=1000, nthre
 	cmresults_out_file = f"{output_directory}/cmresults/{prefix}_attC.res"
 	if os.path.exists(cmresults_out_file):
 		fasta_in=f"{output_directory}/cmresults/{prefix}_infernal.fasta"
-		prodigal(fasta_in, output_directory, save_orf)
+		prodigal(fasta_in, output_directory)
 		logging.info("Prodigal done! Starting pos-processing...")
 		posproc2(prefix, output_directory, k_orf=0)
 		logging.info("Pos-processing done!")
@@ -994,13 +988,12 @@ def migfinder_cli():
 	parser.add_argument("-t", "--threads", required=False, help="Number of threads to run HattCI, [default=6]")	
 	parser.add_argument("-e", "--score", required=False, help="Threshold used to filter Infernal results [default=20]")
 	parser.add_argument("-r", "--orf", required=False, help="Threshold used to filter HattCI results [default=0]")
-	parser.add_argument("-s", "--save", required=False, help="Save ORF results in a separate fasta file [default=True]")
 	parser.add_argument("-a", "--adist", required=False, help="Max distance allowed to consider two adjacent attC sites part of the same integron [default=4000]")	
 	parser.add_argument("-d", "--odist", required=False, help="Max distance allowed between ORF and attC site in the same gene cassette [default=500]")
 	
 	args = parser.parse_args()
 
-	return main(args.fasta, args.output, args.cmmodel, args.strand , args.seqs , args.threads , args.score , args.orf , args.save , args.adist , args.odist)
+	return main(args.fasta, args.output, args.cmmodel, args.strand , args.seqs , args.threads , args.score , args.orf , args.adist , args.odist)
 
 
 if __name__ == "__main__":
