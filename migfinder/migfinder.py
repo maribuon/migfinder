@@ -904,7 +904,7 @@ def posproc2(prefix, output_directory, k_orf, d_CDS_attC = 500, dist_threshold=4
 			fattC.close()
 			#
 			coord_in=f"{output_directory}/cmresults/{prefix}_attC.res"
-			all_coord = open(coord_in, 'rb')
+			all_coord = open(coord_in, 'r')
 			attC_coord = f"{output_directory}/cmresults/{prefix}_attC.coord"
 			with open(attC_coord, 'w') as fcoord:
 				for line in all_coord:
