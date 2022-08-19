@@ -427,7 +427,7 @@ def posproc2(prefix, output_directory, k_orf = 0, d_CDS_attC = 500, dist_thresho
 	remove_overlap_attC = 0
 	# -------------- opening attC predictions ------------------- #
 	tmp = f"{output_directory}/cmresults/{prefix}_attC.res"
-	attc = list(csv.reader(open(tmp, 'rb'),delimiter='\t'))
+	attc = list(csv.reader(open(tmp, 'r'),delimiter='\t'))
 	MattC = len(attc)
 	data = []
 	# editing the attC_result matrix
